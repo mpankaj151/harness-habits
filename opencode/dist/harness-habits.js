@@ -159,7 +159,7 @@ var costLogger = (ctx) => {
 
 // src/features/handoff.ts
 import { createHash } from "node:crypto";
-import { appendFileSync as appendFileSync2, existsSync, mkdirSync as mkdirSync2, readFileSync as readFileSync2, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync as mkdirSync2, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join as join3 } from "node:path";
 
 // src/shared/idle.ts
@@ -249,7 +249,6 @@ function getIdle(ctx, deps = realDeps()) {
 // src/features/handoff.ts
 var ASSISTANT_MAX = 2e3;
 var USER_MAX = 1e3;
-var EXCLUDE_LINE = ".opencode/handoff/";
 var DAY_MS = 864e5;
 function byCreated(messages) {
   return [...messages].sort((a, b) => (a?.info?.time?.created ?? 0) - (b?.info?.time?.created ?? 0));
@@ -291,12 +290,15 @@ function buildNote(opts) {
     ""
   ].join("\n");
 }
+function worktreeSlug(worktree) {
+  return worktree.replace(/[^A-Za-z0-9]/g, "-");
+}
 function createHandoff(opts = {}) {
   return (ctx) => {
     const idle = getIdle(ctx, opts.deps ?? realDeps());
     const deps = idle.deps;
     const worktree = ctx.input?.worktree || ctx.directory;
-    const noteDir = join3(worktree, ".opencode", "handoff");
+    const noteDir = join3(opts.dataDir ?? dataDir(), "handoff", worktreeSlug(worktree));
     const notePath = (id) => join3(noteDir, `${id}.md`);
     const edited = /* @__PURE__ */ new Map();
     const unattributed = /* @__PURE__ */ new Set();
@@ -306,7 +308,6 @@ function createHandoff(opts = {}) {
     const notes = /* @__PURE__ */ new Map();
     const notices = /* @__PURE__ */ new Map();
     let active;
-    let excludeDone = false;
     const filesFor = (id) => {
       let s = edited.get(id);
       if (!s) edited.set(id, s = /* @__PURE__ */ new Set());
@@ -316,21 +317,6 @@ function createHandoff(opts = {}) {
       }
       return s;
     };
-    function ensureExclude() {
-      if (excludeDone) return;
-      excludeDone = true;
-      try {
-        const gitDir = join3(worktree, ".git");
-        if (!existsSync(gitDir) || !statSync(gitDir).isDirectory()) return;
-        const file = join3(gitDir, "info", "exclude");
-        const current = existsSync(file) ? readFileSync2(file, "utf8") : "";
-        if (current.split("\n").some((l) => l.trim() === EXCLUDE_LINE)) return;
-        mkdirSync2(join3(gitDir, "info"), { recursive: true });
-        appendFileSync2(file, (current && !current.endsWith("\n") ? "\n" : "") + EXCLUDE_LINE + "\n");
-      } catch (err) {
-        log(ctx.client, "warn", `handoff: could not update git exclude: ${String(err)}`);
-      }
-    }
     function write(id) {
       const snap = snapshots.get(id);
       if (!snap) return;
@@ -348,7 +334,6 @@ function createHandoff(opts = {}) {
       mkdirSync2(noteDir, { recursive: true });
       writeFileSync(notePath(id), note);
       hashes.set(id, hash);
-      ensureExclude();
     }
     function writeAll() {
       for (const id of snapshots.keys()) {
@@ -817,13 +802,13 @@ function createOutputGuard(fsFactory = (cwd) => realFs(cwd, output_guard_default
 var outputGuard = createOutputGuard();
 
 // src/features/size-lint.ts
-import { readFileSync as readFileSync3 } from "node:fs";
+import { readFileSync as readFileSync2 } from "node:fs";
 import { homedir as homedir3 } from "node:os";
 import { join as join5 } from "node:path";
 var LIMIT = 200;
 function lineCount(path) {
   try {
-    const text = readFileSync3(path, "utf8");
+    const text = readFileSync2(path, "utf8");
     if (!text) return 0;
     const n = text.split("\n").length;
     return text.endsWith("\n") ? n - 1 : n;
@@ -867,7 +852,7 @@ function createSizeLint(opts = {}) {
 var sizeLint = createSizeLint();
 
 // src/features/tool-budget.ts
-import { mkdirSync as mkdirSync3, readFileSync as readFileSync4, writeFileSync as writeFileSync2 } from "node:fs";
+import { mkdirSync as mkdirSync3, readFileSync as readFileSync3, writeFileSync as writeFileSync2 } from "node:fs";
 import { join as join6 } from "node:path";
 var BUILTINS = new Set(
   "invalid question bash read glob grep edit write task webfetch todowrite websearch skill apply_patch".split(" ")
@@ -880,7 +865,7 @@ function stateFile() {
 }
 function readState() {
   try {
-    const raw = JSON.parse(readFileSync4(stateFile(), "utf8"));
+    const raw = JSON.parse(readFileSync3(stateFile(), "utf8"));
     return {
       ...raw,
       overBudget: raw?.overBudget === true,

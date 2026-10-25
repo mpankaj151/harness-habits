@@ -2,8 +2,8 @@
 
 // src/features/handoff.ts
 import { createHash } from "node:crypto";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { join as join2 } from "node:path";
 
 // src/log.ts
 function log(client, level, message, extra) {
@@ -13,6 +13,83 @@ function log(client, level, message, extra) {
     });
   } catch {
   }
+}
+
+// src/options.ts
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+var FEATURE_DEFAULTS = {
+  "output-guard": true,
+  "size-lint": true,
+  "cache-break": true,
+  handoff: true,
+  "idle-compaction": false,
+  "cost-logger": true,
+  "tool-budget": false,
+  "precompact-snapshot": true
+};
+function defaultOptions() {
+  return {
+    features: { ...FEATURE_DEFAULTS },
+    compaction: { pct: 0.6, cooldownMs: 6e4, disableForProviders: ["ollama"] },
+    handoff: { maxAgeDays: 7, userMessages: 5 },
+    toolBudget: { maxServers: 8, providerPattern: "openai|azure", disableFirst: [] },
+    debounceMs: 1500
+  };
+}
+function configDir(env = process.env) {
+  const base = env.XDG_CONFIG_HOME;
+  return join(base ? base : join(homedir(), ".config"), "harness-habits");
+}
+function dataDir(env = process.env) {
+  const base = env.XDG_DATA_HOME;
+  return join(base ? base : join(homedir(), ".local", "share"), "harness-habits");
+}
+function parseBool(value) {
+  if (typeof value === "boolean") return value;
+  return !["0", "false", "off"].includes(String(value).trim().toLowerCase());
+}
+function isObject(v) {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+function mergeSection(target, src) {
+  for (const [k, v] of Object.entries(src)) {
+    if (v !== void 0) target[k] = v;
+  }
+}
+function merge(target, src) {
+  if (!isObject(src)) return;
+  for (const [k, v] of Object.entries(src)) {
+    if (k === "features") {
+      if (isObject(v)) {
+        for (const [fk, fv] of Object.entries(v)) {
+          if (fk in FEATURE_DEFAULTS) target.features[fk] = parseBool(fv);
+        }
+      }
+    } else if (isObject(v) && isObject(target[k])) {
+      mergeSection(target[k], v);
+    } else if ((k in target || k === "debounceMs") && v !== void 0) {
+      target[k] = v;
+    }
+  }
+}
+function loadOptions(npmOptions, env = process.env) {
+  const opts = defaultOptions();
+  try {
+    merge(opts, { features: JSON.parse(readFileSync(join(configDir(env), "features.json"), "utf8")) });
+  } catch {
+  }
+  try {
+    merge(opts, JSON.parse(readFileSync(join(configDir(env), "opencode.json"), "utf8")));
+  } catch {
+  }
+  merge(opts, npmOptions);
+  for (const key of Object.keys(FEATURE_DEFAULTS)) {
+    const raw = env["HH_FEATURE_" + key.toUpperCase().replace(/-/g, "_")];
+    if (raw !== void 0 && raw !== "") opts.features[key] = parseBool(raw);
+  }
+  return opts;
 }
 
 // src/shared/idle.ts
@@ -102,7 +179,6 @@ function getIdle(ctx, deps = realDeps()) {
 // src/features/handoff.ts
 var ASSISTANT_MAX = 2e3;
 var USER_MAX = 1e3;
-var EXCLUDE_LINE = ".opencode/handoff/";
 var DAY_MS = 864e5;
 function byCreated(messages) {
   return [...messages].sort((a, b) => (a?.info?.time?.created ?? 0) - (b?.info?.time?.created ?? 0));
@@ -144,13 +220,16 @@ function buildNote(opts) {
     ""
   ].join("\n");
 }
+function worktreeSlug(worktree) {
+  return worktree.replace(/[^A-Za-z0-9]/g, "-");
+}
 function createHandoff(opts = {}) {
   return (ctx) => {
     const idle = getIdle(ctx, opts.deps ?? realDeps());
     const deps = idle.deps;
     const worktree = ctx.input?.worktree || ctx.directory;
-    const noteDir = join(worktree, ".opencode", "handoff");
-    const notePath = (id) => join(noteDir, `${id}.md`);
+    const noteDir = join2(opts.dataDir ?? dataDir(), "handoff", worktreeSlug(worktree));
+    const notePath = (id) => join2(noteDir, `${id}.md`);
     const edited = /* @__PURE__ */ new Map();
     const unattributed = /* @__PURE__ */ new Set();
     const todos = /* @__PURE__ */ new Map();
@@ -159,7 +238,6 @@ function createHandoff(opts = {}) {
     const notes = /* @__PURE__ */ new Map();
     const notices = /* @__PURE__ */ new Map();
     let active;
-    let excludeDone = false;
     const filesFor = (id) => {
       let s = edited.get(id);
       if (!s) edited.set(id, s = /* @__PURE__ */ new Set());
@@ -169,21 +247,6 @@ function createHandoff(opts = {}) {
       }
       return s;
     };
-    function ensureExclude() {
-      if (excludeDone) return;
-      excludeDone = true;
-      try {
-        const gitDir = join(worktree, ".git");
-        if (!existsSync(gitDir) || !statSync(gitDir).isDirectory()) return;
-        const file = join(gitDir, "info", "exclude");
-        const current = existsSync(file) ? readFileSync(file, "utf8") : "";
-        if (current.split("\n").some((l) => l.trim() === EXCLUDE_LINE)) return;
-        mkdirSync(join(gitDir, "info"), { recursive: true });
-        appendFileSync(file, (current && !current.endsWith("\n") ? "\n" : "") + EXCLUDE_LINE + "\n");
-      } catch (err) {
-        log(ctx.client, "warn", `handoff: could not update git exclude: ${String(err)}`);
-      }
-    }
     function write(id) {
       const snap = snapshots.get(id);
       if (!snap) return;
@@ -201,7 +264,6 @@ function createHandoff(opts = {}) {
       mkdirSync(noteDir, { recursive: true });
       writeFileSync(notePath(id), note);
       hashes.set(id, hash);
-      ensureExclude();
     }
     function writeAll() {
       for (const id of snapshots.keys()) {
@@ -222,7 +284,7 @@ function createHandoff(opts = {}) {
       let best;
       for (const name of readdirSync(noteDir)) {
         if (!name.endsWith(".md")) continue;
-        const path = join(noteDir, name);
+        const path = join2(noteDir, name);
         const mtime = statSync(path).mtimeMs;
         if (mtime < cutoff) continue;
         if (!best || mtime > best.mtime) best = { path, mtime };
@@ -324,79 +386,6 @@ function compose(features, ctx) {
     };
   }
   return out;
-}
-
-// src/options.ts
-import { readFileSync as readFileSync2 } from "node:fs";
-import { homedir } from "node:os";
-import { join as join2 } from "node:path";
-var FEATURE_DEFAULTS = {
-  "output-guard": true,
-  "size-lint": true,
-  "cache-break": true,
-  handoff: true,
-  "idle-compaction": false,
-  "cost-logger": true,
-  "tool-budget": false,
-  "precompact-snapshot": true
-};
-function defaultOptions() {
-  return {
-    features: { ...FEATURE_DEFAULTS },
-    compaction: { pct: 0.6, cooldownMs: 6e4, disableForProviders: ["ollama"] },
-    handoff: { maxAgeDays: 7, userMessages: 5 },
-    toolBudget: { maxServers: 8, providerPattern: "openai|azure", disableFirst: [] },
-    debounceMs: 1500
-  };
-}
-function configDir(env = process.env) {
-  const base = env.XDG_CONFIG_HOME;
-  return join2(base ? base : join2(homedir(), ".config"), "harness-habits");
-}
-function parseBool(value) {
-  if (typeof value === "boolean") return value;
-  return !["0", "false", "off"].includes(String(value).trim().toLowerCase());
-}
-function isObject(v) {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
-}
-function mergeSection(target, src) {
-  for (const [k, v] of Object.entries(src)) {
-    if (v !== void 0) target[k] = v;
-  }
-}
-function merge(target, src) {
-  if (!isObject(src)) return;
-  for (const [k, v] of Object.entries(src)) {
-    if (k === "features") {
-      if (isObject(v)) {
-        for (const [fk, fv] of Object.entries(v)) {
-          if (fk in FEATURE_DEFAULTS) target.features[fk] = parseBool(fv);
-        }
-      }
-    } else if (isObject(v) && isObject(target[k])) {
-      mergeSection(target[k], v);
-    } else if ((k in target || k === "debounceMs") && v !== void 0) {
-      target[k] = v;
-    }
-  }
-}
-function loadOptions(npmOptions, env = process.env) {
-  const opts = defaultOptions();
-  try {
-    merge(opts, { features: JSON.parse(readFileSync2(join2(configDir(env), "features.json"), "utf8")) });
-  } catch {
-  }
-  try {
-    merge(opts, JSON.parse(readFileSync2(join2(configDir(env), "opencode.json"), "utf8")));
-  } catch {
-  }
-  merge(opts, npmOptions);
-  for (const key of Object.keys(FEATURE_DEFAULTS)) {
-    const raw = env["HH_FEATURE_" + key.toUpperCase().replace(/-/g, "_")];
-    if (raw !== void 0 && raw !== "") opts.features[key] = parseBool(raw);
-  }
-  return opts;
 }
 
 // src/server.ts

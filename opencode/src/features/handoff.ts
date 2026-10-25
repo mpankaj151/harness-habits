@@ -1,14 +1,14 @@
 import { createHash } from "node:crypto";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Feature } from "../compose.ts";
 import { log } from "../log.ts";
+import { dataDir } from "../options.ts";
 import { getIdle, realDeps } from "../shared/idle.ts";
 import type { IdleDeps, IdlePayload } from "../shared/idle.ts";
 
 const ASSISTANT_MAX = 2000;
 const USER_MAX = 1000;
-const EXCLUDE_LINE = ".opencode/handoff/";
 const DAY_MS = 86400000;
 
 interface Snapshot {
@@ -74,12 +74,19 @@ export function buildNote(opts: {
   ].join("\n");
 }
 
-export function createHandoff(opts: { deps?: IdleDeps } = {}): Feature {
+/** Folder name for a worktree: every non-alphanumeric character becomes "-". */
+export function worktreeSlug(worktree: string): string {
+  return worktree.replace(/[^A-Za-z0-9]/g, "-");
+}
+
+// Notes live under the data dir, never inside the repo: nothing to gitignore, worktrees and submodules
+// behave the same, and files a repo ships can never be mistaken for a handoff note.
+export function createHandoff(opts: { deps?: IdleDeps; dataDir?: string } = {}): Feature {
   return (ctx) => {
     const idle = getIdle(ctx, opts.deps ?? realDeps());
     const deps = idle.deps;
     const worktree = (ctx.input?.worktree as string | undefined) || ctx.directory;
-    const noteDir = join(worktree, ".opencode", "handoff");
+    const noteDir = join(opts.dataDir ?? dataDir(), "handoff", worktreeSlug(worktree));
     const notePath = (id: string) => join(noteDir, `${id}.md`);
 
     const edited = new Map<string, Set<string>>();
@@ -92,7 +99,6 @@ export function createHandoff(opts: { deps?: IdleDeps } = {}): Feature {
     // with the same sessionID), so the prompt prefix does not change between requests.
     const notices = new Map<string, Promise<string[]>>();
     let active: string | undefined;
-    let excludeDone = false;
 
     const filesFor = (id: string) => {
       let s = edited.get(id);
@@ -103,22 +109,6 @@ export function createHandoff(opts: { deps?: IdleDeps } = {}): Feature {
       }
       return s;
     };
-
-    function ensureExclude(): void {
-      if (excludeDone) return;
-      excludeDone = true;
-      try {
-        const gitDir = join(worktree, ".git");
-        if (!existsSync(gitDir) || !statSync(gitDir).isDirectory()) return;
-        const file = join(gitDir, "info", "exclude");
-        const current = existsSync(file) ? readFileSync(file, "utf8") : "";
-        if (current.split("\n").some((l) => l.trim() === EXCLUDE_LINE)) return;
-        mkdirSync(join(gitDir, "info"), { recursive: true });
-        appendFileSync(file, (current && !current.endsWith("\n") ? "\n" : "") + EXCLUDE_LINE + "\n");
-      } catch (err) {
-        log(ctx.client, "warn", `handoff: could not update git exclude: ${String(err)}`);
-      }
-    }
 
     function write(id: string): void {
       const snap = snapshots.get(id);
@@ -137,7 +127,6 @@ export function createHandoff(opts: { deps?: IdleDeps } = {}): Feature {
       mkdirSync(noteDir, { recursive: true });
       writeFileSync(notePath(id), note);
       hashes.set(id, hash);
-      ensureExclude();
     }
 
     function writeAll(): void {
