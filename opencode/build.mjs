@@ -7,7 +7,7 @@ const common = { bundle: true, format: "esm", platform: "node", target: "es2022"
 
 await build({ ...common, entryPoints: ["src/index.ts"], outfile: "dist/harness-habits.js" });
 
-const features = ["output-guard", "handoff", "idle-compaction"];
+const features = ["output-guard", "handoff", "idle-compaction", "cost-logger", "cache-break", "size-lint"];
 for (const f of features) {
   await build({ ...common, entryPoints: [`src/standalone/${f}.ts`], outfile: `dist/features/${f}.js` });
 }

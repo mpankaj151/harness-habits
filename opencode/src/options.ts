@@ -43,6 +43,11 @@ export function configDir(env: Record<string, string | undefined> = process.env)
   return join(base ? base : join(homedir(), ".config"), "harness-habits");
 }
 
+export function dataDir(env: Record<string, string | undefined> = process.env): string {
+  const base = env.XDG_DATA_HOME;
+  return join(base ? base : join(homedir(), ".local", "share"), "harness-habits");
+}
+
 function parseBool(value: unknown): boolean {
   if (typeof value === "boolean") return value;
   return !["0", "false", "off"].includes(String(value).trim().toLowerCase());
