@@ -51,7 +51,7 @@ Three levels of choice:
 
 1. **Feature flags, one install.** Feature flags come from `~/.config/harness-habits/features.json`, overridable per harness by `HH_FEATURE_<KEY>` env vars, and on Claude Code also by `CLAUDE_PLUGIN_OPTION_<KEY>` env vars. Env wins over the file. `--features` writes the file.
 2. **Per harness.** `--claude`, `--opencode`, `--codex`, `--statusline`, `--report-cron` are independent; none implies another.
-3. **Standalone, no plugin.** Each feature doc has a "Just this one" section: a hooks snippet pointing at the single script (Claude Code, Codex), or the per-feature OpenCode bundle `opencode/dist/features/<name>.js` (plugin id `harness-habits-<name>`).
+3. **Standalone, no plugin.** Each feature doc has a "Just this one" section: a hooks snippet pointing at the single script (Claude Code, Codex; `size-lint` and `precompact-snapshot` share the SessionStart script, and the docs show how to switch one off), or the per-feature OpenCode bundle `opencode/dist/features/<name>.js` (plugin id `harness-habits-<name>`).
 
 ## Docs
 

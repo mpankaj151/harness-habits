@@ -50,6 +50,14 @@ Claude Code: add the three hooks to `~/.claude/settings.json` with an absolute p
 }
 ```
 
+The `SessionStart` script `claude_sessionstart.py` serves both `size-lint` (startup and clear) and `precompact-snapshot` (compact and resume re-injection), and both are on by default, so this snippet enables size lint too. To keep only precompact-snapshot, write `~/.config/harness-habits/features.json` with the other key off:
+
+```json
+{"size-lint": false}
+```
+
+Exporting `HH_FEATURE_SIZE_LINT=0` in the shell that launches Claude Code works too.
+
 Codex CLI: add to `~/.codex/hooks.json` (then trust it via `/hooks`):
 
 ```json
