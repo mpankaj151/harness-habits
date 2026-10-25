@@ -5,3 +5,79 @@
 TodoWrite list and edited files. `SessionStart` with source `compact` or `resume` re-injects it. With `HH_STARTUP_HANDOFF=1`,
 a `startup` session also receives the newest snapshot for the same `cwd` younger than 7 days.
 Disable with feature `precompact-snapshot`.
+
+## Just this one
+
+Claude Code: add the three hooks to `~/.claude/settings.json` with an absolute path to your checkout (`SessionStart` does the re-injection). `shared/py/harness_habits/` must sit next to `bin/` (copy the whole `shared/py/` directory if you move the script); the scripts import only that package and the standard library.
+
+```json
+{
+  "hooks": {
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/claude_precompact.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/claude_sessionend.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/claude_sessionstart.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Codex CLI: add to `~/.codex/hooks.json` (then trust it via `/hooks`):
+
+```json
+{
+  "hooks": {
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/codex_sessionend.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/codex_precompact.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+

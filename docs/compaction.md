@@ -33,3 +33,13 @@ When the context window is unknown or wrong for a model, pin the trigger directl
 ```
 
 Or give the window and keep the percentage: `"compaction": {"contextLimits": {"anthropic/claude-sonnet-5": 200000}}`.
+
+## Just this one
+
+OpenCode: each feature has its own dependency-free bundle with plugin id `harness-habits-idle-compaction`. Copy it without the all-in-one plugin:
+
+```sh
+cp opencode/dist/features/idle-compaction.js ~/.config/opencode/plugins/
+```
+
+Options come from `~/.config/harness-habits/opencode.json`: set `"features": {"idle-compaction": true}` and a `compaction` block as above. Do not install it together with `harness-habits.js`, which already contains the feature.

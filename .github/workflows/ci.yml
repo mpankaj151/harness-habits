@@ -21,12 +21,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: opencode/package-lock.json
       - name: OpenCode build and tests
         run: cd opencode && npm ci && npm run build && npm test
       - name: Built artefact is current
         run: git diff --exit-code opencode/dist
       - name: Validate Claude plugin
-        run: npm i -g @anthropic-ai/claude-code && claude plugin validate .
+        # Pinned on purpose: bump deliberately so a new release cannot break CI silently.
+        run: npm i -g @anthropic-ai/claude-code@2.1.310 && claude plugin validate .
       - name: JSON files parse
         run: jq empty hooks/hooks.json codex/hooks.json .claude-plugin/*.json
       - name: Shellcheck

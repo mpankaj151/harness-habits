@@ -39,3 +39,13 @@ In `~/.config/harness-habits/opencode.json`:
 - Lazy MCP loading: a colleague's lazy-mcp plugin, documented separately in `~/knowledge/opencode-lazy-mcp-tutorial`.
   No code from it is used here.
 - `OPENCODE_EXPERIMENTAL_CODE_MODE`: a real flag (OpenCode 1.17.14+, undocumented) that removes MCP tool definitions from the request and exposes a single `execute` tool with a catalog.
+
+## Just this one
+
+OpenCode: each feature has its own dependency-free bundle with plugin id `harness-habits-tool-budget`. Copy it without the all-in-one plugin:
+
+```sh
+cp opencode/dist/features/tool-budget.js ~/.config/opencode/plugins/
+```
+
+The feature is off by default; enable it with `"features": {"tool-budget": true}` in the same file. Options come from `~/.config/harness-habits/opencode.json`: `toolBudget.maxServers`, `toolBudget.providerPattern`, `toolBudget.disableFirst`. Do not install it together with `harness-habits.js`, which already contains the feature.

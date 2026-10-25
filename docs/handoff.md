@@ -21,3 +21,13 @@ in the system prompt as a path, not as content. The note's current text is also 
 prompt for its own session. Notes are never deleted by the plugin.
 
 Options (`<config dir>/opencode.json`): `handoff.maxAgeDays`, `handoff.userMessages`, `debounceMs`.
+
+## Just this one
+
+OpenCode: each feature has its own dependency-free bundle with plugin id `harness-habits-handoff`. Copy it without the all-in-one plugin:
+
+```sh
+cp opencode/dist/features/handoff.js ~/.config/opencode/plugins/
+```
+
+Options come from `~/.config/harness-habits/opencode.json`: `handoff.maxAgeDays`, `handoff.userMessages`, `debounceMs`. Do not install it together with `harness-habits.js`, which already contains the feature.

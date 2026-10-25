@@ -26,3 +26,47 @@ repos:
 ```
 
 A packaged remote pre-commit hook is future work.
+
+## Just this one
+
+Claude Code: add the `SessionStart` hook to `~/.claude/settings.json` with an absolute path to your checkout. `shared/py/harness_habits/` must sit next to `bin/` (copy the whole `shared/py/` directory if you move the script); the scripts import only that package and the standard library.
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/claude_sessionstart.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Codex CLI: add to `~/.codex/hooks.json` (then trust it via `/hooks`):
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/codex_sessionstart.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+OpenCode: `cp opencode/dist/features/size-lint.js ~/.config/opencode/plugins/` (plugin id `harness-habits-size-lint`).

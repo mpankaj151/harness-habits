@@ -42,3 +42,13 @@ The `cost-logger` feature appends one JSON line per completed assistant message 
 Fields: `ts` (ISO timestamp), `sessionID`, `messageID`, `providerID`, `modelID`, `cost`, `tokens_last_step`.
 
 `cost` accumulates across all steps within the message. `tokens_last_step` (`input`, `output`, `reasoning`, `cache.read`, `cache.write`) is the usage of the last step only, so it approximates the current context size and does not sum to the message total.
+
+## Just this one (OpenCode usage logger)
+
+OpenCode: each feature has its own dependency-free bundle with plugin id `harness-habits-cost-logger`. Copy it without the all-in-one plugin:
+
+```sh
+cp opencode/dist/features/cost-logger.js ~/.config/opencode/plugins/
+```
+
+The bundle writes the usage log described above; `weekly_report.py` reads it. Options come from `~/.config/harness-habits/opencode.json`. Do not install it together with `harness-habits.js`, which already contains the feature.
