@@ -6,7 +6,7 @@ Instruction files (`CLAUDE.md`, `AGENTS.md`) and the auto-memory file are loaded
 
 ## What you see
 
-One line per file over its guideline:
+One line per file over its guideline (on Claude Code and Codex it is sent to the model as context, not shown on screen; on OpenCode it is added to the system prompt):
 
 - Claude Code and Codex: `<path> has <n> lines (guideline 200 lines; <b> bytes).` For memory files the guideline reads `180 lines` or `22528 bytes`. A `CLAUDE.md` over 200 lines with no `.claude/rules/` adds `Note: ….`
 - OpenCode: `AGENTS.md has <n> lines (guideline 200). Long instruction files cost tokens on every turn.` (same wording for `CLAUDE.md` and `~/.config/opencode/AGENTS.md`).

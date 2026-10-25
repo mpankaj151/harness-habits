@@ -8,7 +8,7 @@ Found during review and deliberately not fixed in 0.1.0. None loses data or bloc
 - Claude Code: only the PreToolUse guard has been exercised live (`tests/smoke/claude.sh`). The other hooks are unit-tested only.
 - `ConfigChange` hook output shape (`hookSpecificOutput.additionalContext`) for cache-break notices is not confirmed in the docs; Claude Code may ignore it.
 - The plugin declares no `userConfig`; per-feature switches on Claude Code are env vars and `features.json` only (the manifest schema was not verified).
-- CI has never run (nothing pushed); `shellcheck` was not available locally. The committed `opencode/dist` is built on macOS and may differ byte-for-byte from a Linux CI build.
+- CI passed on PR #1 (ubuntu and macOS, Python 3.11 and 3.12); `shellcheck` was not available locally. The committed `opencode/dist` is built on macOS and may differ byte-for-byte from a Linux CI build.
 - README install commands for the marketplace flow are unverified end to end (`--plugin-dir` is what the smoke test uses).
 
 ## Output guard

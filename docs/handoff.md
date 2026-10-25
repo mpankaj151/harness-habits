@@ -1,4 +1,4 @@
-# Handoff notes (OpenCode)
+# Handoff notes
 
 ## Why
 
@@ -26,7 +26,7 @@ Not applicable; Claude Code uses the [pre-compaction snapshot](precompact-snapsh
 
 ## Switch it off
 
-Set `"handoff": false` in `~/.config/harness-habits/features.json`, or export `HH_FEATURE_HANDOFF=0` in the shell that launches the harness. On Claude Code `CLAUDE_PLUGIN_OPTION_HANDOFF=0` works too.
+Set `"handoff": false` in `~/.config/harness-habits/features.json`, or export `HH_FEATURE_HANDOFF=0` in the shell that launches the harness.
 
 ## Just this one
 

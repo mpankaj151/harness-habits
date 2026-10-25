@@ -26,7 +26,7 @@ No logger; Codex sessions appear in the report through the session-browser regis
 
 ### Weekly schedule
 
-`./install.sh --report-cron` installs `weekly_report.py` and schedules `weekly_report.py --write` for Monday 09:00 (launchd on macOS; on Linux the installer prints a crontab line). `./install.sh --report-cron --uninstall` removes it.
+`./install.sh --report-cron` installs `weekly_report.py` and schedules `weekly_report.py --write` for Monday 09:00 (launchd on macOS; on Linux the installer prints a crontab line). `--report-cron` copies every `shared/py/bin/*.py` script plus the package, rules and `pricing.json` into `<data dir>/bin`. `./install.sh --report-cron --uninstall` only unloads and deletes the launchd plist (macOS); the copied files stay in `<data dir>/bin`, and on Linux you remove the crontab line by hand.
 
 ### Run it by hand
 
@@ -38,13 +38,13 @@ python3 -I ~/.local/share/harness-habits/bin/weekly_report.py --since 7d
 
 Options: `--since 7d|30d|YYYY-MM-DD` (default `7d`), `--format md|json`, `--write` (also saves
 `<data dir>/reports/<ISO-week>.md`, for example `2026-W43.md`), `--registry PATH`, `--usage-log PATH`,
-`--claude-projects PATH`. `install.py --report-cron` schedules `weekly_report.py --write` for Monday 09:00.
+`--claude-projects PATH`.
 
 ## Switch it off
 
-Logger: `"cost-logger": false` in `~/.config/harness-habits/features.json`, or `HH_FEATURE_COST_LOGGER=0`. Report schedule: `./install.sh --report-cron --uninstall`. Status line: `./install.sh --statusline --uninstall`.
+Logger: `"cost-logger": false` in `~/.config/harness-habits/features.json`, or `HH_FEATURE_COST_LOGGER=0`. Report schedule: `./install.sh --report-cron --uninstall` (macOS plist only; Linux: delete the crontab line; installed scripts stay). Status line: `./install.sh --statusline --uninstall`.
 
-## Just this one (OpenCode usage logger)
+## Just this one
 
 OpenCode: each feature has its own dependency-free bundle with plugin id `harness-habits-cost-logger`. Copy it without the all-in-one plugin:
 

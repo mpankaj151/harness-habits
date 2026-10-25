@@ -4,6 +4,10 @@
 
 - docs: README rewritten as a feature inventory with per-harness quick start and verification checks; feature docs normalised to one template.
 
+### Releases
+
+After merge: tag `v0.1.0`; optionally `npm publish` the OpenCode package in `opencode/`.
+
 ## 0.1.0
 
 First release.

@@ -6,6 +6,7 @@ The model provider caches the start of every request (`CLAUDE.md`, `.mcp.json`, 
 
 ## What you see
 
+- Claude Code messages are sent to the model as context, not shown on screen; only the OpenCode toast is visible.
 - Claude Code, after an Edit, Write or MultiEdit of a prefix file: `<path> is part of the prompt prefix; the next request re-reads the whole prefix at full input price (cache miss).` Once per session and file.
 - Claude Code, after a model switch: `Model switched; the prompt cache is per model, so this first turn re-reads the full context at full price.`
 - OpenCode toast, after an edit or write of `opencode.json`, `opencode.jsonc`, `AGENTS.md` or `CLAUDE.md`: `<file> changed; it is part of the prompt prefix, so the next turn re-reads the full prefix (cache miss).` Once per session and file.
