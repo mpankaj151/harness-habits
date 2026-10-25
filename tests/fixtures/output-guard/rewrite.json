@@ -1,0 +1,96 @@
+[
+  {
+    "name": "grep -r",
+    "command": "grep -r foo .",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "rewrite",
+      "command": "grep -r foo . | head -n 200"
+    }
+  },
+  {
+    "name": "grep -c",
+    "command": "grep -c foo file",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "allow"
+    }
+  },
+  {
+    "name": "grep -l",
+    "command": "grep -l foo .",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "allow"
+    }
+  },
+  {
+    "name": "rg",
+    "command": "rg foo",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "rewrite",
+      "command": "rg foo | head -n 200"
+    }
+  },
+  {
+    "name": "rg --files",
+    "command": "rg --files",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "allow"
+    }
+  },
+  {
+    "name": "find name",
+    "command": "find . -name '*.py'",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "rewrite",
+      "command": "find . -name '*.py' | head -n 200"
+    }
+  },
+  {
+    "name": "find delete",
+    "command": "find . -name x -delete",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "allow"
+    }
+  },
+  {
+    "name": "find exec",
+    "command": "find . -exec rm {} \\;",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "allow"
+    }
+  },
+  {
+    "name": "ls -R",
+    "command": "ls -R",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "rewrite",
+      "command": "ls -R | head -n 200"
+    }
+  },
+  {
+    "name": "ls -la",
+    "command": "ls -la",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "allow"
+    }
+  }
+]

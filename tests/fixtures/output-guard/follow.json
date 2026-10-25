@@ -1,0 +1,21 @@
+[
+  {
+    "name": "tail -f",
+    "command": "tail -f app.log",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "deny",
+      "message_contains": "never returns"
+    }
+  },
+  {
+    "name": "tail -n",
+    "command": "tail -n 50 app.log",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "allow"
+    }
+  }
+]

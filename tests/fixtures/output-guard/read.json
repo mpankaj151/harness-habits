@@ -1,0 +1,126 @@
+[
+  {
+    "name": "cat big",
+    "command": "cat big.txt",
+    "cwd": "/work",
+    "files": {
+      "big.txt": 800
+    },
+    "expect": {
+      "action": "deny",
+      "message_contains": "800 lines"
+    }
+  },
+  {
+    "name": "cat small",
+    "command": "cat small.txt",
+    "cwd": "/work",
+    "files": {
+      "small.txt": 10
+    },
+    "expect": {
+      "action": "allow"
+    }
+  },
+  {
+    "name": "cat -n big",
+    "command": "cat -n big.txt",
+    "cwd": "/work",
+    "files": {
+      "big.txt": 800
+    },
+    "expect": {
+      "action": "deny",
+      "message_contains": "800 lines"
+    }
+  },
+  {
+    "name": "cat two files",
+    "command": "cat a.txt b.txt",
+    "cwd": "/work",
+    "files": {
+      "a.txt": 10,
+      "b.txt": 900
+    },
+    "expect": {
+      "action": "deny",
+      "message_contains": "b.txt"
+    }
+  },
+  {
+    "name": "cat glob",
+    "command": "cat *.log",
+    "cwd": "/work",
+    "files": {
+      "a.log": 900
+    },
+    "expect": {
+      "action": "allow"
+    }
+  },
+  {
+    "name": "less big",
+    "command": "less big.txt",
+    "cwd": "/work",
+    "files": {
+      "big.txt": 800
+    },
+    "expect": {
+      "action": "deny",
+      "message_contains": "800 lines"
+    }
+  },
+  {
+    "name": "cat quoted space",
+    "command": "cat \"big file.txt\"",
+    "cwd": "/work",
+    "files": {
+      "big file.txt": 800
+    },
+    "expect": {
+      "action": "deny",
+      "message_contains": "800 lines"
+    }
+  },
+  {
+    "name": "cat unterminated quote",
+    "command": "cat 'unterminated",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "allow"
+    }
+  },
+  {
+    "name": "sudo cat big",
+    "command": "sudo cat big.txt",
+    "cwd": "/work",
+    "files": {
+      "big.txt": 800
+    },
+    "expect": {
+      "action": "deny",
+      "message_contains": "800 lines"
+    }
+  },
+  {
+    "name": "cat missing",
+    "command": "cat missing.txt",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "allow"
+    }
+  },
+  {
+    "name": "cat binary",
+    "command": "cat bin.dat",
+    "cwd": "/work",
+    "files": {
+      "bin.dat": -1
+    },
+    "expect": {
+      "action": "allow"
+    }
+  }
+]

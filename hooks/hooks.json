@@ -1,0 +1,9 @@
+{
+  "description": "harness-habits: token, memory and cost hygiene",
+  "hooks": {
+    "PreToolUse": [
+      {"matcher": "Bash|Read",
+       "hooks": [{"type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_pretooluse.py\"", "timeout": 10}]}
+    ]
+  }
+}

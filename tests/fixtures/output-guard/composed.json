@@ -1,0 +1,71 @@
+[
+  {
+    "name": "grep wc",
+    "command": "grep -r foo . | wc -l",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "allow"
+    }
+  },
+  {
+    "name": "grep sort",
+    "command": "grep -r foo . | sort",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "advise",
+      "message_contains": "no output bound"
+    }
+  },
+  {
+    "name": "grep -c sort",
+    "command": "grep -c foo . | sort",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "allow"
+    }
+  },
+  {
+    "name": "cat head",
+    "command": "cat big.txt | head",
+    "cwd": "/work",
+    "files": {
+      "big.txt": 800
+    },
+    "expect": {
+      "action": "allow"
+    }
+  },
+  {
+    "name": "echo subshell",
+    "command": "echo $(cat big.txt)",
+    "cwd": "/work",
+    "files": {
+      "big.txt": 800
+    },
+    "expect": {
+      "action": "allow"
+    }
+  },
+  {
+    "name": "git log",
+    "command": "git log --oneline",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "allow"
+    }
+  },
+  {
+    "name": "redirect stderr",
+    "command": "grep -r foo . 2>&1",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "advise",
+      "message_contains": "no output bound"
+    }
+  }
+]
