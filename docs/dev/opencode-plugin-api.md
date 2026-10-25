@@ -1,7 +1,7 @@
 # OpenCode 1.18.15 plugin API facts (verified from source and SDK d.ts, 2026-10-25)
 
 Type definitions: `@opencode-ai/plugin@1.18.15` `dist/index.d.ts` (a copy is installed at
-`~/knowledge/opencode-lazy-mcp-tutorial/sandbox/node_modules/@opencode-ai/plugin/`), SDK v1 client at
+`<lazy-mcp tutorial>/sandbox/node_modules/@opencode-ai/plugin/`), SDK v1 client at
 `.../node_modules/@opencode-ai/sdk/dist/gen/{sdk.gen.d.ts,types.gen.d.ts}`.
 
 ## Module shape

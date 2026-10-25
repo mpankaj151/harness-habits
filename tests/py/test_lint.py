@@ -9,7 +9,7 @@ def mk(p: Path, lines: int, size: int = 0):
 
 
 def test_slug_matches_real_rule():
-    assert lint.slug(Path("/Users/nehamodi")) == "-Users-nehamodi"
+    assert lint.slug(Path("/Users/alice")) == "-Users-alice"
     assert lint.slug(Path("/Users/a/Documents/my_proj.x")) == "-Users-a-Documents-my-proj-x"
 
 

@@ -1,7 +1,7 @@
 # harness-habits v0.1 implementation plan
 
-Spec: `/Users/nehamodi/.claude/plans/delightful-chasing-marble.md` (approved 2026-10-25).
-Repo root: `/Users/nehamodi/Documents/Projects/personal-projects/self/harness-habits`, branch `build/v0.1`.
+Spec: `~/.claude/plans/delightful-chasing-marble.md` (approved 2026-10-25).
+Repo root: `~/Documents/Projects/personal-projects/self/harness-habits`, branch `build/v0.1`.
 Developer reference notes (read the one your task names): `docs/dev/claude-hooks.md`,
 `docs/dev/opencode-plugin-api.md`, `docs/dev/codex-hooks.md`.
 
@@ -205,7 +205,7 @@ Files:
   using a fake fs; `shellsplit.test.ts` with quote/operator cases; `compose.test.ts` proving a
   throwing feature does not stop the next one and a disabled feature is not composed;
   `output-guard.test.ts` proving in-place mutation and throw-on-deny with a fake client.
-- `tests/smoke/opencode.sh`: adapted from `~/knowledge/opencode-lazy-mcp-tutorial/sandbox/run.sh`:
+- `tests/smoke/opencode.sh`: adapted from `<lazy-mcp tutorial>/sandbox/run.sh`:
   creates `tests/smoke/.sandbox/` with `opencode.json` `{"$schema":"https://opencode.ai/config.json","model":"ollama/qwen3.8-fast"}`
   (no mcp), copies `opencode/dist/harness-habits.js` to `.sandbox/plugins/`, writes an 800-line
   `.sandbox/work/big.txt`, runs
@@ -281,9 +281,9 @@ Read `docs/dev/opencode-plugin-api.md` (sections: events, client, compaction, lo
   `opencode.jsonc`, `AGENTS.md`, `CLAUDE.md`} → toast once per (session, file):
   `"<file> changed; it is part of the prompt prefix, so the next turn re-reads the full prefix (cache miss)."`.
   Check the real arg name for the edit/write tools in `docs/dev/opencode-plugin-api.md`; if not
-  listed, read `~/knowledge/opencode-lazy-mcp-tutorial/sandbox/node_modules/@opencode-ai/plugin/dist/tool.d.ts`
+  listed, read `<lazy-mcp tutorial>/sandbox/node_modules/@opencode-ai/plugin/dist/tool.d.ts`
   or the OpenCode source clone at
-  `/private/tmp/claude-501/-Users-nehamodi/6d0c91a1-6778-482f-8550-42a4780ed826/scratchpad/oc/packages/opencode/src/tool/{edit,write}.ts`.
+  `<scratch>/oc/packages/opencode/src/tool/{edit,write}.ts`.
 - `opencode/src/features/size-lint.ts`: `experimental.chat.system.transform` once per sessionID
   (skip subagents by consulting the idle pipeline's parentID cache, or `client.session.get`):
   compute findings for `<worktree>/AGENTS.md`, `<worktree>/CLAUDE.md`, `~/.config/opencode/AGENTS.md`
@@ -303,7 +303,7 @@ Read `docs/dev/claude-hooks.md`.
   `cwd/AGENTS.md`, `home/.claude/CLAUDE.md` over 200 lines; auto-memory
   `home/.claude/projects/<slug>/memory/MEMORY.md` over 180 lines or over 22528 bytes where
   `slug = re.sub(r"[^A-Za-z0-9]", "-", str(cwd.resolve()))` (verify against the directory names in
-  `~/.claude/projects`, e.g. `/Users/nehamodi` → `-Users-nehamodi`); `.claude/rules/` missing while
+  `~/.claude/projects`, e.g. `/Users/alice` → `-Users-alice`); `.claude/rules/` missing while
   `CLAUDE.md` > 200 lines → note "path-scoped rules in .claude/rules/ load only when matching files are touched".
   `format(findings) -> str` one factual line each.
 - `shared/py/bin/claude_sessionstart.py`: stdin `source`. If `source in {"startup","clear"}` and
@@ -319,7 +319,7 @@ Read `docs/dev/claude-hooks.md`.
   `notebook_path`), deduped. Tolerant of unknown line shapes. `render(snapshot, cwd, session_id) -> str`
   markdown with a header block `session: <id>` / `cwd: <cwd>` / `written: <ISO>`.
   Build the fixture `tests/fixtures/transcripts/sample.jsonl` from the real shape: inspect one file
-  under `~/.claude/projects/-Users-nehamodi/*.jsonl` READ-ONLY to learn the structure (`type`,
+  under `~/.claude/projects/-Users-alice/*.jsonl` READ-ONLY to learn the structure (`type`,
   `message.role`, `message.content[]` with `type: text|tool_use|tool_result`), then hand-write a
   small anonymised fixture (no real content).
 - `shared/py/bin/claude_precompact.py` and `claude_sessionend.py`: if `precompact-snapshot`
@@ -440,7 +440,7 @@ Design, in priority order:
   provider pattern, `session.error` regex matching (positive, negative, missing fields), persistence
   and next-run `disableFirst` application, once-per-run toasts, learned-prefix recording.
 - Standalone build; rebuild dist; `docs/tool-budget.md` (links to the lazy-mcp tutorial repo
-  `~/knowledge/opencode-lazy-mcp-tutorial` described as "a colleague's lazy-mcp plugin, documented
+  `<lazy-mcp tutorial>` described as "a colleague's lazy-mcp plugin, documented
   separately" with no code copied, and to `OPENCODE_EXPERIMENTAL_CODE_MODE`).
 
 ## Task 9: Codex files, MCP-set templates, docs

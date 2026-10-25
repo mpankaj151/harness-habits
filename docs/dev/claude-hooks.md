@@ -73,7 +73,7 @@ Debounced 300 ms; a slow run is cancelled when the next update starts.
 `CLAUDE_CODE_ENABLE_TELEMETRY=1`, `OTEL_METRICS_EXPORTER=otlp|prometheus|console`, `OTEL_LOGS_EXPORTER`, `OTEL_EXPORTER_OTLP_ENDPOINT`. Metrics: `claude_code.cost.usage`, `claude_code.token.usage{type=input|output|cacheRead|cacheCreation}`, session/commit/PR counts.
 
 ## Transcript JSONL (for `transcript.py`)
-Files: `~/.claude/projects/<slug>/<session_id>.jsonl`, slug = cwd with every non-alphanumeric char replaced by `-` (e.g. `/Users/nehamodi` → `-Users-nehamodi`). Lines are JSON objects with `type` (`user|assistant|...`), `message{role, content: string | [{type:"text",text}|{type:"tool_use",name,input}|{type:"tool_result",...}]}`, `uuid`, `timestamp`. Inspect one real file read-only before writing the fixture; shapes vary by version.
+Files: `~/.claude/projects/<slug>/<session_id>.jsonl`, slug = cwd with every non-alphanumeric char replaced by `-` (e.g. `/Users/alice` → `-Users-alice`). Lines are JSON objects with `type` (`user|assistant|...`), `message{role, content: string | [{type:"text",text}|{type:"tool_use",name,input}|{type:"tool_result",...}]}`, `uuid`, `timestamp`. Inspect one real file read-only before writing the fixture; shapes vary by version.
 
 ## Coexistence on this machine
 `~/.claude/settings.json` already has: `statusLine` → `bash ~/.claude/statusline-command.sh`; `Stop` and `SessionEnd` hooks → session-browser's python; plugin `claude-mods` hooks `PreToolUse(Bash)`, `PostToolUse(Write|Edit)`, `SessionStart`, `ConfigChange` (none use `updatedInput`). Same-event hooks run side by side.

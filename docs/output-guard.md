@@ -4,6 +4,8 @@ The output guard keeps shell output and file reads from flooding the context win
 
 Switch it off with `HH_FEATURE_OUTPUT_GUARD=0`, or `"output-guard": false` in `~/.config/harness-habits/features.json`. Any hook error allows the command and writes one `harness-habits:` line to stderr.
 
+Claude Code transcripts record the model's original command, not the rewritten one, so a bounded rewrite never shows up in the session history.
+
 ## Decision table
 
 | Command | Decision |

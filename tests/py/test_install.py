@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ORIG = {"type": "command", "command": "bash /Users/nehamodi/.claude/statusline-command.sh"}
+ORIG = {"type": "command", "command": "bash /Users/alice/.claude/statusline-command.sh"}
 
 
 def run(home, *args):
