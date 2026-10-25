@@ -43,7 +43,7 @@ def test_install_idempotent_and_uninstall(tmp_path):
     run(home, *FLAGS)
     settings = json.loads((home / ".claude/settings.json").read_text())
     data = home / ".local/share/harness-habits/bin"
-    assert settings["statusLine"] == {"type": "command", "command": f"python3 -I {data}/statusline_wrap.py"}
+    assert settings["statusLine"] == {"type": "command", "command": f'python3 -I "{data}/statusline_wrap.py"'}
     assert settings["other"] == 1
     assert (data / "statusline_wrap.py").exists() and (data / "harness_habits/statusline.py").exists()
     cfg = home / ".config/harness-habits"
@@ -250,3 +250,27 @@ def test_codex_feature_gating_uses_saved_features(tmp_path):
     run(home, "--features", "output-guard")
     run(home, "--codex")  # no --features: reads <config dir>/features.json
     assert set(json.loads((home / ".codex/hooks.json").read_text())["hooks"]) == {"PreToolUse"}
+
+
+def test_statusline_quotes_path_and_keeps_padding_and_refresh_interval(tmp_path):
+    home = tmp_path / "home with space"
+    (home / ".claude").mkdir(parents=True)
+    orig = {**ORIG, "padding": 2, "refreshInterval": 5}
+    (home / ".claude" / "settings.json").write_text(json.dumps({"statusLine": orig}))
+    run(home, "--statusline")
+    sl = json.loads((home / ".claude/settings.json").read_text())["statusLine"]
+    assert sl["padding"] == 2 and sl["refreshInterval"] == 5 and sl["type"] == "command"
+    script = home / ".local/share/harness-habits/bin/statusline_wrap.py"
+    assert sl["command"] == f'python3 -I "{script}"'
+    run(home, "--statusline", "--uninstall")
+    assert json.loads((home / ".claude/settings.json").read_text())["statusLine"] == orig
+
+
+def test_features_merge_keeps_unrelated_keys(tmp_path):
+    home = setup(tmp_path)
+    cfg = home / ".config/harness-habits"
+    cfg.mkdir(parents=True)
+    (cfg / "features.json").write_text(json.dumps({"note": "mine", "handoff": False}))
+    run(home, "--features", "output-guard")
+    d = json.loads((cfg / "features.json").read_text())
+    assert d["note"] == "mine" and d["output-guard"] is True and d["handoff"] is False

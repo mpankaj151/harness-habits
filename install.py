@@ -142,7 +142,8 @@ def do_statusline(ctx: Ctx, uninstall: bool) -> None:
         current = json.loads(settings.read_text() or "{}").get("statusLine")
     if isinstance(current, dict) and current and "statusline_wrap.py" not in str(current.get("command", "")):
         ctx.merge(cfg, lambda d: {**d, "wrapped": current}, "record existing statusLine")
-    ours = {"type": "command", "command": f"python3 -I {bindir / 'statusline_wrap.py'}"}
+    kept = {k: v for k, v in current.items() if k not in ("type", "command")} if isinstance(current, dict) else {}
+    ours = {**kept, "type": "command", "command": f'python3 -I "{bindir / "statusline_wrap.py"}"'}  # padding, refreshInterval etc. survive
     ctx.merge(settings, lambda d: {**d, "statusLine": ours}, "set statusLine")
 
 
@@ -157,7 +158,7 @@ def parse_features(raw: str) -> dict:
 
 
 def do_features(ctx: Ctx, feats: dict) -> None:
-    ctx.merge(ctx.config / "features.json", lambda d: dict(feats), "features")
+    ctx.merge(ctx.config / "features.json", lambda d: {**d, **feats}, "features")
 
 
 # --- opencode ---------------------------------------------------------------------------
@@ -346,7 +347,7 @@ def do_report_cron(ctx: Ctx, uninstall: bool) -> None:
         else:
             ctx.say("skip launchctl load (custom --home)")
     else:
-        print(f"add to crontab: 0 9 * * 1 python3 -I {script} --write")
+        print(f"add to crontab: 0 9 * * 1 python3 -I \"{script}\" --write")
 
 
 # --- main -------------------------------------------------------------------------------
