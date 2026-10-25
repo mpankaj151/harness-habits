@@ -70,22 +70,28 @@ class Ctx:
             print(f"{cmd[0]} CLI not found; run these commands manually: {text}")
 
 
-def install_runtime(ctx: Ctx, only: str | None = None) -> Path:
-    """Copy bin scripts (all, or just `only`) and the harness_habits package to <data dir>/bin."""
+def install_runtime(ctx: Ctx, only=None) -> Path:
+    """Copy bin scripts (all, or those matching the glob(s) in `only`), the harness_habits package
+    and shared/rules/ to <data dir>/bin."""
     bindir = ctx.data / "bin"
-    for script in sorted((ROOT / "shared" / "py" / "bin").glob(only or "*.py")):
+    globs = [only] if isinstance(only, str) else (only or ["*.py"])
+    names = sorted({p for g in globs for p in (ROOT / "shared" / "py" / "bin").glob(g)})
+    for script in names:
         ctx.copy_file(script, bindir / script.name)
     ctx.copy_tree(ROOT / "shared" / "py" / "harness_habits", bindir / "harness_habits")
+    ctx.copy_tree(ROOT / "shared" / "rules", bindir / "rules")
     pricing = ROOT / "shared" / "pricing.json"
     if only is None and pricing.exists() and not (ctx.data / "pricing.json").exists():
         ctx.copy_file(pricing, ctx.data / "pricing.json")  # seeded once; the user's edits are never overwritten
     return bindir
 
 
-def uninstall_runtime(ctx: Ctx) -> None:
+def uninstall_runtime(ctx: Ctx, names=("statusline_wrap.py",)) -> None:
+    """Remove the named scripts; drop <data dir>/bin (package, rules) once no script is left."""
     bindir = ctx.data / "bin"
-    ctx.remove(bindir / "statusline_wrap.py")
-    others = [p for p in bindir.glob("*.py") if p.name != "statusline_wrap.py"] if bindir.exists() else []
+    for name in names:
+        ctx.remove(bindir / name)
+    others = [p for p in bindir.glob("*.py") if p.name not in names] if bindir.exists() else []
     if not others:
         ctx.remove(bindir)
 
@@ -203,13 +209,26 @@ def do_opencode(ctx: Ctx, feats: dict | None, uninstall: bool) -> None:
 
 # --- codex ------------------------------------------------------------------------------
 
-def codex_entries(hooks_src: Path) -> dict:
-    return json.loads(hooks_src.read_text().replace("$HH_ROOT", str(ROOT)))
+CODEX_SCRIPTS = ["codex_*.py", "_codex_handoff.py"]
 
 
-def is_our_codex_entry(entry, commands: set) -> bool:
+def codex_entries(hooks_src: Path, bindir: Path) -> dict:
+    """codex/hooks.json with $HH_BIN replaced by the installed script directory."""
+    return json.loads(hooks_src.read_text().replace("$HH_BIN", str(bindir)))
+
+
+def is_our_codex_entry(entry, commands: set, bindir: Path) -> bool:
+    """True for entries written by this installer: the exact current commands, or a command that
+    runs one of our codex_* scripts from the installed bin dir or from this checkout (older installs)."""
     inner = entry.get("hooks", []) if isinstance(entry, dict) else []
-    return any(isinstance(h, dict) and (h.get("command") in commands or "/shared/py/bin/codex_" in str(h.get("command", "")) and str(ROOT) in str(h.get("command", ""))) for h in inner)
+
+    def ours(cmd) -> bool:
+        cmd = str(cmd)
+        if cmd in commands:
+            return True
+        return "/codex_" in cmd and (str(bindir) in cmd or f"{ROOT}/shared/py/bin" in cmd)
+
+    return any(isinstance(h, dict) and ours(h.get("command", "")) for h in inner)
 
 
 def effective_features(ctx: Ctx, feats: dict | None) -> dict:
@@ -229,16 +248,17 @@ def do_codex(ctx: Ctx, feats: dict, uninstall: bool) -> None:
     src = ROOT / "codex"
     hooks_dst = ctx.home / ".codex" / "hooks.json"
     skill_dst = ctx.home / ".agents" / "skills" / "handoff-note"
+    bindir = ctx.data / "bin"
     if uninstall:
         commands = set()
         if (src / "hooks.json").exists():
-            for items in codex_entries(src / "hooks.json").get("hooks", {}).values():
+            for items in codex_entries(src / "hooks.json", bindir).get("hooks", {}).values():
                 commands |= {h.get("command") for e in items for h in e.get("hooks", [])}
 
         def strip(d: dict) -> dict:
             hooks = d.get("hooks", {})
             for event in list(hooks):
-                hooks[event] = [e for e in hooks[event] if not is_our_codex_entry(e, commands)]
+                hooks[event] = [e for e in hooks[event] if not is_our_codex_entry(e, commands, bindir)]
                 if not hooks[event]:
                     del hooks[event]
             return d
@@ -246,12 +266,15 @@ def do_codex(ctx: Ctx, feats: dict, uninstall: bool) -> None:
         if hooks_dst.exists():
             ctx.merge(hooks_dst, strip, "remove harness-habits codex hooks")
         ctx.remove(skill_dst)
+        names = sorted({p.name for g in CODEX_SCRIPTS for p in (ROOT / "shared" / "py" / "bin").glob(g)})
+        uninstall_runtime(ctx, tuple(names))
         return
     hooks_src = src / "hooks.json"
     if not hooks_src.exists():
         ctx.say("notice: codex files (codex/hooks.json, codex/skills/, codex/config.toml.snippet) are not in this checkout yet; skipping codex")
         return
-    entries = codex_entries(hooks_src)
+    install_runtime(ctx, CODEX_SCRIPTS)  # hooks run from the data dir so a moved or deleted checkout cannot break them
+    entries = codex_entries(hooks_src, bindir)
 
     def add(d: dict) -> dict:
         hooks = d.setdefault("hooks", {})

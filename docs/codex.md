@@ -5,13 +5,16 @@
 Install with `python3 -I install.py --codex` (add `--features a,b` to choose features; otherwise
 `<config dir>/features.json` or the defaults apply). The installer:
 
-- merges `codex/hooks.json` into `~/.codex/hooks.json`, replacing `$HH_ROOT` with this checkout's absolute path
-  and adding only the entries whose feature is on (`output-guard`, `size-lint`, `precompact-snapshot`);
+- copies the `codex_*.py` scripts, the `harness_habits` package and `shared/rules/` to `<data dir>/bin`, so the hooks
+  keep working when this checkout is moved or deleted;
+- merges `codex/hooks.json` into `~/.codex/hooks.json`, replacing `$HH_BIN` with `<data dir>/bin`
+  and adding only the entries whose feature is on (`output-guard`, `size-lint`, `precompact-snapshot`).
+  Each command is `test -f "<script>" && python3 -I "<script>" || true`, so a missing script exits 0 silently;
 - copies the `handoff-note` skill to `~/.agents/skills/handoff-note`;
 - prints `codex/config.toml.snippet` (`[features] memories = true`). It never writes `config.toml`.
 
-`--codex --uninstall` removes only the hook entries whose command points at this checkout's `codex_*.py`
-scripts, and the skill. Re-running the install is a no-op.
+`--codex --uninstall` removes only the hook entries whose command runs our `codex_*.py` scripts (installed or
+from this checkout), those installed scripts, and the skill. Re-running the install is a no-op.
 
 ## Hooks
 

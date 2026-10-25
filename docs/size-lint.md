@@ -39,7 +39,7 @@ Claude Code: add the `SessionStart` hook to `~/.claude/settings.json` with an ab
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/claude_sessionstart.py",
+            "command": "test -f \"/absolute/path/to/harness-habits/shared/py/bin/claude_sessionstart.py\" && python3 -I \"/absolute/path/to/harness-habits/shared/py/bin/claude_sessionstart.py\" || true",
             "timeout": 10
           }
         ]
@@ -67,7 +67,7 @@ Codex CLI: add to `~/.codex/hooks.json` (then trust it via `/hooks`):
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/codex_sessionstart.py",
+            "command": "test -f \"/absolute/path/to/harness-habits/shared/py/bin/codex_sessionstart.py\" && python3 -I \"/absolute/path/to/harness-habits/shared/py/bin/codex_sessionstart.py\" || true",
             "timeout": 10
           }
         ]

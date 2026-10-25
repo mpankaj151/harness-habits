@@ -18,7 +18,7 @@ Claude Code: add the three hooks to `~/.claude/settings.json` with an absolute p
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/claude_precompact.py",
+            "command": "test -f \"/absolute/path/to/harness-habits/shared/py/bin/claude_precompact.py\" && python3 -I \"/absolute/path/to/harness-habits/shared/py/bin/claude_precompact.py\" || true",
             "timeout": 30
           }
         ]
@@ -29,7 +29,7 @@ Claude Code: add the three hooks to `~/.claude/settings.json` with an absolute p
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/claude_sessionend.py",
+            "command": "test -f \"/absolute/path/to/harness-habits/shared/py/bin/claude_sessionend.py\" && python3 -I \"/absolute/path/to/harness-habits/shared/py/bin/claude_sessionend.py\" || true",
             "timeout": 30
           }
         ]
@@ -40,7 +40,7 @@ Claude Code: add the three hooks to `~/.claude/settings.json` with an absolute p
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/claude_sessionstart.py",
+            "command": "test -f \"/absolute/path/to/harness-habits/shared/py/bin/claude_sessionstart.py\" && python3 -I \"/absolute/path/to/harness-habits/shared/py/bin/claude_sessionstart.py\" || true",
             "timeout": 10
           }
         ]
@@ -68,7 +68,7 @@ Codex CLI: add to `~/.codex/hooks.json` (then trust it via `/hooks`):
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/codex_sessionend.py",
+            "command": "test -f \"/absolute/path/to/harness-habits/shared/py/bin/codex_sessionend.py\" && python3 -I \"/absolute/path/to/harness-habits/shared/py/bin/codex_sessionend.py\" || true",
             "timeout": 30
           }
         ]
@@ -79,7 +79,7 @@ Codex CLI: add to `~/.codex/hooks.json` (then trust it via `/hooks`):
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/codex_precompact.py",
+            "command": "test -f \"/absolute/path/to/harness-habits/shared/py/bin/codex_precompact.py\" && python3 -I \"/absolute/path/to/harness-habits/shared/py/bin/codex_precompact.py\" || true",
             "timeout": 30
           }
         ]

@@ -1,6 +1,6 @@
 {"hooks":{
-  "PreToolUse":[{"feature":"output-guard","matcher":"Bash","hooks":[{"type":"command","command":"python3 -I \"$HH_ROOT/shared/py/bin/codex_pretooluse.py\"","timeout":10}]}],
-  "SessionStart":[{"feature":"size-lint","hooks":[{"type":"command","command":"python3 -I \"$HH_ROOT/shared/py/bin/codex_sessionstart.py\"","timeout":10}]}],
-  "SessionEnd":[{"feature":"precompact-snapshot","hooks":[{"type":"command","command":"python3 -I \"$HH_ROOT/shared/py/bin/codex_sessionend.py\"","timeout":30}]}],
-  "PreCompact":[{"feature":"precompact-snapshot","hooks":[{"type":"command","command":"python3 -I \"$HH_ROOT/shared/py/bin/codex_precompact.py\"","timeout":30}]}]
+  "PreToolUse":[{"feature":"output-guard","matcher":"Bash","hooks":[{"type":"command","command":"test -f \"$HH_BIN/codex_pretooluse.py\" && python3 -I \"$HH_BIN/codex_pretooluse.py\" || true","timeout":10}]}],
+  "SessionStart":[{"feature":"size-lint","hooks":[{"type":"command","command":"test -f \"$HH_BIN/codex_sessionstart.py\" && python3 -I \"$HH_BIN/codex_sessionstart.py\" || true","timeout":10}]}],
+  "SessionEnd":[{"feature":"precompact-snapshot","hooks":[{"type":"command","command":"test -f \"$HH_BIN/codex_sessionend.py\" && python3 -I \"$HH_BIN/codex_sessionend.py\" || true","timeout":30}]}],
+  "PreCompact":[{"feature":"precompact-snapshot","hooks":[{"type":"command","command":"test -f \"$HH_BIN/codex_precompact.py\" && python3 -I \"$HH_BIN/codex_precompact.py\" || true","timeout":30}]}]
 }}

@@ -168,3 +168,26 @@ def test_hooks_json_events():
     assert set(h) == {"PreToolUse", "SessionStart", "PostToolUse", "PostModelSwitch", "PreCompact", "SessionEnd"}
     assert h["PostToolUse"][0]["matcher"] == "Edit|Write|MultiEdit"
     assert h["PreCompact"][0]["hooks"][0]["timeout"] == 30
+
+
+# --- C1: a missing script must never block the harness (python3 exits 2 on a missing file)
+def _hook_commands():
+    out = []
+    for name in ("hooks/hooks.json", "codex/hooks.json"):
+        d = json.loads((ROOT / name).read_text())
+        for items in d["hooks"].values():
+            for entry in items:
+                out += [h["command"] for h in entry["hooks"]]
+    return out
+
+
+def test_hook_commands_exit_zero_when_scripts_are_missing(tmp_path):
+    cmds = _hook_commands()
+    assert len(cmds) >= 10
+    gone = str(tmp_path / "does-not-exist")
+    for cmd in cmds:
+        assert cmd.startswith("test -f ") and cmd.endswith("|| true"), cmd
+        cmd = cmd.replace("$HH_BIN", gone)
+        env = {"PATH": os.environ["PATH"], "CLAUDE_PLUGIN_ROOT": gone}
+        p = subprocess.run(["sh", "-c", cmd], input="{}", capture_output=True, text=True, env=env)
+        assert p.returncode == 0 and p.stdout == "", (cmd, p.returncode, p.stdout, p.stderr)

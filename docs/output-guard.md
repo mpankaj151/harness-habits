@@ -33,7 +33,7 @@ To use the guard without installing the plugin, add the hook to `~/.claude/setti
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/claude_pretooluse.py",
+            "command": "test -f \"/absolute/path/to/harness-habits/shared/py/bin/claude_pretooluse.py\" && python3 -I \"/absolute/path/to/harness-habits/shared/py/bin/claude_pretooluse.py\" || true",
             "timeout": 10
           }
         ]

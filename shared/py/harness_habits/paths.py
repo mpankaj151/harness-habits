@@ -19,4 +19,10 @@ def data_dir() -> Path:
 
 
 def rules_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "rules" / "output-guard.json"
+    """Installed layout <data dir>/bin/{harness_habits,rules}, else the checkout's shared/rules."""
+    pkg = Path(__file__).resolve().parent
+    for base in (pkg.parent, pkg.parents[1]):
+        candidate = base / "rules" / "output-guard.json"
+        if candidate.is_file():
+            return candidate
+    return pkg.parents[1] / "rules" / "output-guard.json"

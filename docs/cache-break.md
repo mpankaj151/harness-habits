@@ -20,7 +20,7 @@ Add both hooks to `~/.claude/settings.json` with an absolute path to your checko
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/claude_posttooluse.py",
+            "command": "test -f \"/absolute/path/to/harness-habits/shared/py/bin/claude_posttooluse.py\" && python3 -I \"/absolute/path/to/harness-habits/shared/py/bin/claude_posttooluse.py\" || true",
             "timeout": 10
           }
         ]
@@ -31,7 +31,7 @@ Add both hooks to `~/.claude/settings.json` with an absolute path to your checko
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I /absolute/path/to/harness-habits/shared/py/bin/claude_postmodelswitch.py",
+            "command": "test -f \"/absolute/path/to/harness-habits/shared/py/bin/claude_postmodelswitch.py\" && python3 -I \"/absolute/path/to/harness-habits/shared/py/bin/claude_postmodelswitch.py\" || true",
             "timeout": 10
           }
         ]

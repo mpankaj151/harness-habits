@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_pretooluse.py\"",
+            "command": "test -f \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_pretooluse.py\" && python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_pretooluse.py\" || true",
             "timeout": 10
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_sessionstart.py\"",
+            "command": "test -f \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_sessionstart.py\" && python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_sessionstart.py\" || true",
             "timeout": 10
           }
         ]
@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_posttooluse.py\"",
+            "command": "test -f \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_posttooluse.py\" && python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_posttooluse.py\" || true",
             "timeout": 10
           }
         ]
@@ -41,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_postmodelswitch.py\"",
+            "command": "test -f \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_postmodelswitch.py\" && python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_postmodelswitch.py\" || true",
             "timeout": 10
           }
         ]
@@ -52,7 +52,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_precompact.py\"",
+            "command": "test -f \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_precompact.py\" && python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_precompact.py\" || true",
             "timeout": 30
           }
         ]
@@ -63,7 +63,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_sessionend.py\"",
+            "command": "test -f \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_sessionend.py\" && python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_sessionend.py\" || true",
             "timeout": 30
           }
         ]

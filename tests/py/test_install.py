@@ -211,7 +211,12 @@ def test_codex_merge_idempotent_and_uninstall(tmp_path):
     assert d["keep"] == 1 and set(d["hooks"]) == {"PreToolUse", "SessionStart", "SessionEnd", "PreCompact"}
     assert d["hooks"]["PreToolUse"][0] == foreign and len(d["hooks"]["PreToolUse"]) == 2
     text = json.dumps(d)
-    assert "$HH_ROOT" not in text and '"feature"' not in text and f"{ROOT}/shared/py/bin/codex_pretooluse.py" in text
+    assert "$HH_ROOT" not in text and '"feature"' not in text and "$HH_BIN" not in text
+    data_bin = home / ".local/share/harness-habits/bin"
+    assert f"{data_bin}/codex_pretooluse.py" in text and str(ROOT) not in text
+    for name in ("codex_pretooluse.py", "codex_sessionstart.py", "codex_sessionend.py", "codex_precompact.py",
+                 "_codex_handoff.py", "harness_habits/guard.py", "rules/output-guard.json"):
+        assert (data_bin / name).is_file(), name
     assert (home / ".agents/skills/handoff-note/SKILL.md").exists()
     assert not (codex / "config.toml").exists()
 
@@ -223,6 +228,21 @@ def test_codex_merge_idempotent_and_uninstall(tmp_path):
     d = json.loads((codex / "hooks.json").read_text())
     assert d["hooks"] == {"PreToolUse": [foreign]} and d["keep"] == 1
     assert not (home / ".agents/skills/handoff-note").exists()
+    assert not data_bin.exists()
+
+
+def test_codex_installed_hook_runs_standalone(tmp_path):
+    """The installed scripts need nothing from the checkout (package and rules travel with them)."""
+    home = setup(tmp_path)
+    run(home, "--codex")
+    data_bin = home / ".local/share/harness-habits/bin"
+    (home / "w").mkdir()
+    (home / "w" / "big.txt").write_text("x\n" * 800)
+    payload = {"tool_name": "Bash", "tool_input": {"command": "cat big.txt"}, "cwd": str(home / "w")}
+    env = {"PATH": os.environ["PATH"], "HOME": str(home)}
+    p = subprocess.run([sys.executable, "-I", str(data_bin / "codex_pretooluse.py")], input=json.dumps(payload),
+                       capture_output=True, text=True, env=env)
+    assert p.returncode == 0 and "limit 500" in p.stdout
 
 
 def test_codex_feature_gating_uses_saved_features(tmp_path):

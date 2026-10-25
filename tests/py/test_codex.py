@@ -134,7 +134,7 @@ def test_hooks_json_valid_and_scripts_exist():
         for e in entries:
             assert e["feature"] == feats[event]
             for h in e["hooks"]:
-                script = h["command"].split('"')[1].replace("$HH_ROOT", str(ROOT))
+                script = h["command"].split('"')[1].replace("$HH_BIN", str(BIN))
                 assert Path(script).is_file(), script
 
 
