@@ -16,7 +16,13 @@ export const FEATURE_DEFAULTS: Record<FeatureKey, boolean> = {
 
 export interface Options {
   features: Record<FeatureKey, boolean>;
-  compaction: { pct: number; absoluteTokens?: number; cooldownMs: number; disableForProviders: string[] };
+  compaction: {
+    pct: number;
+    absoluteTokens?: number;
+    cooldownMs: number;
+    disableForProviders: string[];
+    contextLimits?: Record<string, number>; // "provider/model" -> context window tokens
+  };
   handoff: { maxAgeDays: number; userMessages: number };
   toolBudget: { budget: number; providerPattern: string; disableFirst: string[] };
   debounceMs: number;
