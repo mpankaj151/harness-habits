@@ -39,7 +39,7 @@ def test_deny(work):
         "permissionDecision": "deny",
         "permissionDecisionReason": out["hookSpecificOutput"]["permissionDecisionReason"],
     }}
-    assert "501 lines (limit 500)" in out["hookSpecificOutput"]["permissionDecisionReason"]  # RealFS stops counting at max+1
+    assert "more than 500 lines (limit 500)" in out["hookSpecificOutput"]["permissionDecisionReason"]  # RealFS stops counting at max+1
 
 
 def test_rewrite_keeps_other_input_fields(work):
@@ -66,14 +66,14 @@ def test_read_advise_and_limit(work):
     p = {"tool_name": "Read", "tool_input": {"file_path": str(work / "big.txt")}, "cwd": str(work)}
     h = json.loads(run(p, work).stdout)["hookSpecificOutput"]
     assert set(h) == {"hookEventName", "additionalContext"}
-    assert "501 lines" in h["additionalContext"]
+    assert "more than 500 lines" in h["additionalContext"]
     p["tool_input"]["limit"] = 50
     assert run(p, work).stdout == ""
 
 
 def test_relative_read_uses_cwd(work):
     p = {"tool_name": "Read", "tool_input": {"file_path": "big.txt"}, "cwd": str(work)}
-    assert "501 lines" in run(p, work).stdout
+    assert "more than 500 lines" in run(p, work).stdout
 
 
 def test_other_tool_silent(work):
@@ -90,3 +90,14 @@ def test_disabled_feature(work):
 def test_invalid_stdin(work, raw):
     r = run(None, work, raw=raw)
     assert (r.returncode, r.stdout) == (0, "")
+
+
+@pytest.mark.parametrize("payload", [
+    {"tool_name": "Bash", "tool_input": "oops", "cwd": "/tmp"},
+    {"tool_name": "Bash", "tool_input": {"command": "cat x"}, "cwd": 5},
+])
+def test_handler_exception_is_swallowed(work, payload):
+    r = run(payload, work)
+    assert r.returncode == 0
+    assert r.stdout == ""
+    assert r.stderr.startswith("harness-habits:")

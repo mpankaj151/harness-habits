@@ -43,6 +43,11 @@ def _fmt(rules: dict, key: str, **kw) -> str:
     return rules["messages"][key].format(max=rules["max_lines"], head=rules["head_n"], **kw)
 
 
+def _lines(n: int, rules: dict) -> str:
+    """RealFS stops counting at max_lines + 1, so that value means 'more than max'."""
+    return f"more than {rules['max_lines']}" if n == rules["max_lines"] + 1 else str(n)
+
+
 def _strip_prefixes(seg: list) -> list:
     i = 0
     while i < len(seg) - 1 and os.path.basename(seg[i]) in PREFIXES:
@@ -92,7 +97,7 @@ def _evaluate(command, cwd, fs, rules) -> Decision:
         for p in paths:
             n = fs.line_count(p)
             if n is not None and n > rules["max_lines"]:
-                return Decision("deny", message=_fmt(rules, "deny_full_read", path=p, lines=n))
+                return Decision("deny", message=_fmt(rules, "deny_full_read", path=p, lines=_lines(n, rules)))
         return Decision("allow")
 
     if cmd == "tail":
@@ -120,7 +125,7 @@ def evaluate_read(file_path: str, limit, cwd: str, fs: FileSystem, rules: dict) 
             return Decision("allow")
         n = fs.line_count(file_path)
         if n is not None and n > rules["max_lines"]:
-            return Decision("advise", message=_fmt(rules, "advise_read", path=file_path, lines=n))
+            return Decision("advise", message=_fmt(rules, "advise_read", path=file_path, lines=_lines(n, rules)))
     except Exception:  # noqa: BLE001
         pass
     return Decision("allow")

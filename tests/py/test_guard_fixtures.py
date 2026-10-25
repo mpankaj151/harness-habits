@@ -46,3 +46,12 @@ def test_evaluate_read():
     assert guard.evaluate_read("big.txt", 100, "/work", fs, RULES).action == "allow"
     assert guard.evaluate_read("small.txt", None, "/work", fs, RULES).action == "allow"
     assert guard.evaluate_read("missing.txt", None, "/work", fs, RULES).action == "allow"
+
+
+def test_capped_count_renders_more_than():
+    d = guard.evaluate("cat big.txt", "/work", FakeFS({"big.txt": 501}), RULES)
+    assert "more than 500 lines" in d.message
+    d = guard.evaluate("cat big.txt", "/work", FakeFS({"big.txt": 800}), RULES)
+    assert "800 lines" in d.message
+    d = guard.evaluate_read("big.txt", None, "/work", FakeFS({"big.txt": 501}), RULES)
+    assert "more than 500 lines" in d.message

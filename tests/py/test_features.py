@@ -65,3 +65,9 @@ def test_plugin_option_wins_over_hh(monkeypatch):
     monkeypatch.setenv("HH_FEATURE_OUTPUT_GUARD", "1")
     monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_OUTPUT_GUARD", "false")
     assert features.enabled("output-guard") is False
+
+
+def test_empty_env_does_not_override(monkeypatch):
+    monkeypatch.setenv("HH_FEATURE_OUTPUT_GUARD", "0")
+    monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_OUTPUT_GUARD", "")
+    assert features.enabled("output-guard") is False

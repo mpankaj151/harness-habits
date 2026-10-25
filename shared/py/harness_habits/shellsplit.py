@@ -47,4 +47,4 @@ def segments(tokens, operators=None) -> list:
 def is_composed(tokens, command: str = "", operators=None) -> bool:
     if any(is_operator(t, operators) for t in tokens):
         return True
-    return "$(" in command or "`" in command or "<<" in command
+    return "$(" in command or "`" in command or "<<" in command or "\n" in command

@@ -67,5 +67,15 @@
       "action": "advise",
       "message_contains": "no output bound"
     }
+  },
+  {
+    "name": "newline separated",
+    "command": "grep -r foo .\nls",
+    "cwd": "/work",
+    "files": {},
+    "expect": {
+      "action": "advise",
+      "message_contains": "no output bound"
+    }
   }
 ]
