@@ -194,3 +194,13 @@ def test_install_sh_relative_home(tmp_path):
                        cwd=tmp_path, capture_output=True, text=True, env=env, timeout=60)
     assert p.returncode == 0, p.stderr
     assert (tmp_path / "h/.config/harness-habits/features.json").exists()
+
+
+def test_report_cron_seeds_pricing_once(tmp_path):
+    home = setup(tmp_path)
+    priced = home / ".local" / "share" / "harness-habits" / "pricing.json"
+    run(home, "--report-cron")
+    assert priced.is_file()
+    priced.write_text('{"default": {"input": 99}}')
+    run(home, "--report-cron")
+    assert priced.read_text() == '{"default": {"input": 99}}'

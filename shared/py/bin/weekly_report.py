@@ -6,7 +6,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+_here = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_here, ".."))
+sys.path.insert(0, _here)  # installed layout: <data dir>/bin/harness_habits
 
 from harness_habits import report  # noqa: E402
 from harness_habits.hookio import warn  # noqa: E402

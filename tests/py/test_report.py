@@ -169,3 +169,31 @@ def test_cli_json_and_fallback(tmp_path):
 def test_cli_bad_since(tmp_path):
     r = run_cli(tmp_path, "--since", "banana")
     assert r.returncode != 0
+
+
+def test_installed_layout_runs_under_isolated_python(tmp_path):
+    import shutil
+    bindir = tmp_path / "data" / "bin"
+    shutil.copytree(ROOT / "shared/py/bin", bindir, ignore=shutil.ignore_patterns("__pycache__"))
+    shutil.copytree(ROOT / "shared/py/harness_habits", bindir / "harness_habits", ignore=shutil.ignore_patterns("__pycache__"))
+    env = {"PATH": "/usr/bin:/bin", "HOME": str(tmp_path / "home"), "XDG_DATA_HOME": str(tmp_path / "xdg")}
+    r = subprocess.run([sys.executable, "-I", str(bindir / "weekly_report.py"), "--since", "7d", "--format", "json",
+                        "--registry", str(tmp_path / "none.db"), "--claude-projects", str(tmp_path / "none")],
+                       capture_output=True, text=True, env=env, cwd=tmp_path)
+    assert r.returncode == 0, r.stderr
+    assert "registry" in json.loads(r.stdout)
+
+
+def test_load_pricing_order_and_fallthrough(tmp_path):
+    data = tmp_path / "data"
+    data.mkdir()
+    shipped = tmp_path / "shipped.json"
+    shipped.write_text(json.dumps({"default": {"input": 2}}))
+    assert report.load_pricing(data, shipped) == {"default": {"input": 2}}  # shipped copy
+    (data / "pricing.json").write_text(json.dumps({"default": {"input": 1}}))
+    assert report.load_pricing(data, shipped) == {"default": {"input": 1}}  # data dir wins
+    (data / "pricing.json").write_text("{not json")
+    assert report.load_pricing(data, shipped) == {"default": {"input": 2}}  # malformed falls through
+    shipped.write_text("[1]")
+    assert report.load_pricing(data, shipped) == {"default": report.DEFAULT_PRICE}  # built-in
+    assert report.load_pricing(data, tmp_path / "missing.json") == {"default": report.DEFAULT_PRICE}
