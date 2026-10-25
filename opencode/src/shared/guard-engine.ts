@@ -1,4 +1,4 @@
-import { closeSync, fstatSync, openSync, readSync } from "node:fs";
+import { closeSync, fstatSync, openSync, readSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join } from "node:path";
 import { isComposed, segments, split } from "./shellsplit.ts";
@@ -12,6 +12,8 @@ export interface Decision {
 export interface FileSystem {
   lineCount(path: string): number | null;
 }
+
+const MAX_READ_BYTES = 2 * 1024 * 1024; // a file longer than this counts as over the limit without reading on
 
 const PREFIXES = ["sudo", "command", "nice", "time"];
 
@@ -28,6 +30,7 @@ export function realFs(cwd: string, maxLines = 500): FileSystem {
       try {
         const expanded = path === "~" || path.startsWith("~/") ? join(homedir(), path.slice(1)) : path;
         const full = isAbsolute(expanded) ? expanded : join(cwd || process.cwd(), expanded);
+        if (!statSync(full).isFile()) return null; // before open: opening a FIFO would block
         fd = openSync(full, "r");
         if (!fstatSync(fd).isFile()) return null;
         const buf = Buffer.alloc(64 * 1024);
@@ -40,6 +43,7 @@ export function realFs(cwd: string, maxLines = 500): FileSystem {
           if (got === 0) break;
           if (total < 8192 && buf.subarray(0, Math.min(got, 8192 - total)).includes(0)) return null;
           total += got;
+          if (total >= MAX_READ_BYTES) return cap;
           for (let i = 0; i < got; i++) {
             if (buf[i] === 10) {
               lines++;

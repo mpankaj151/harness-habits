@@ -103,7 +103,8 @@ function loadOptions(npmOptions, env = process.env) {
 var BUILTINS = new Set(
   "invalid question bash read glob grep edit write task webfetch todowrite websearch skill apply_patch".split(" ")
 );
-var LIMIT_RE = /array too long|maximum length 128|too many tools|tools.*(limit|maximum)/i;
+var LIMIT_RE = /array too long|\b128\b.{0,80}\btools?\b|\btools?\b.{0,80}\b128\b/is;
+var BODY_MAX = 4e3;
 var EXCERPT = 120;
 var MAX_SERVERS = 200;
 function stateFile() {
@@ -157,7 +158,10 @@ var toolBudget = (ctx) => {
         return;
       }
       const state = readState();
-      if (state.overBudget) {
+      const model = typeof cfg?.model === "string" ? cfg.model : "";
+      const provider = model.split("/")[0];
+      const providerMatches = provider !== "" && new RegExp(opts.providerPattern, "i").test(provider);
+      if (state.overBudget && providerMatches) {
         const turnedOff = [];
         for (const name of opts.disableFirst) {
           if (name in mcp && mcp[name] && typeof mcp[name] === "object") {
@@ -175,9 +179,7 @@ var toolBudget = (ctx) => {
         }
       }
       const enabled = names.filter((n) => mcp[n]?.enabled !== false);
-      const model = typeof cfg?.model === "string" ? cfg.model : "";
-      const provider = model.split("/")[0];
-      if (provider && enabled.length > opts.maxServers && new RegExp(opts.providerPattern, "i").test(provider)) {
+      if (providerMatches && enabled.length > opts.maxServers) {
         pending.push({
           message: `${enabled.length} MCP servers enabled for ${provider}. OpenAI-compatible endpoints reject requests with more than 128 tool definitions. Fewer servers per project or lazy loading keeps requests under the cap.`,
           variant: "warning"
@@ -189,7 +191,7 @@ var toolBudget = (ctx) => {
       if (event?.type !== "session.error" || errorHandled) return;
       const data = event.properties?.error?.data;
       const raw = data?.message ?? data?.responseBody ?? "";
-      const text = typeof raw === "string" ? raw : "";
+      const text = typeof raw === "string" ? raw.slice(0, BODY_MAX) : "";
       if (!LIMIT_RE.test(text)) return;
       errorHandled = true;
       const excerpt = text.slice(0, EXCERPT);

@@ -1,12 +1,12 @@
 """Output guard decision engine (shared rules: shared/rules/output-guard.json)."""
 import os
 from dataclasses import dataclass
-from itertools import islice
 from typing import Literal, Optional, Protocol
 
 from . import shellsplit
 
 PREFIXES = ("sudo", "command", "nice", "time")
+MAX_READ_BYTES = 2 * 1024 * 1024  # a file longer than this counts as over the limit without reading on
 
 
 @dataclass
@@ -30,11 +30,15 @@ class RealFS:
             full = os.path.join(self.cwd, os.path.expanduser(path))
             if not os.path.isfile(full):
                 return None
+            cap = self.max_lines + 1
             with open(full, "rb") as fh:
-                if b"\0" in fh.read(8192):
-                    return None
-                fh.seek(0)
-                return sum(1 for _ in islice(fh, self.max_lines + 1))
+                data = fh.read(MAX_READ_BYTES)
+            if b"\0" in data[:8192]:
+                return None
+            if len(data) >= MAX_READ_BYTES:
+                return cap
+            n = data.count(b"\n") + (1 if data and not data.endswith(b"\n") else 0)
+            return min(n, cap)
         except OSError:
             return None
 

@@ -564,7 +564,7 @@ function compose(features, ctx) {
 }
 
 // src/shared/guard-engine.ts
-import { closeSync, fstatSync, openSync, readSync } from "node:fs";
+import { closeSync, fstatSync, openSync, readSync, statSync as statSync2 } from "node:fs";
 import { homedir as homedir2 } from "node:os";
 import { isAbsolute, join as join4 } from "node:path";
 
@@ -664,6 +664,7 @@ function isComposed(tokens, command, operators) {
 }
 
 // src/shared/guard-engine.ts
+var MAX_READ_BYTES = 2 * 1024 * 1024;
 var PREFIXES = ["sudo", "command", "nice", "time"];
 function basename2(p) {
   const trimmed = p.replace(/\/+$/, "");
@@ -676,6 +677,7 @@ function realFs(cwd, maxLines = 500) {
       try {
         const expanded = path === "~" || path.startsWith("~/") ? join4(homedir2(), path.slice(1)) : path;
         const full = isAbsolute(expanded) ? expanded : join4(cwd || process.cwd(), expanded);
+        if (!statSync2(full).isFile()) return null;
         fd = openSync(full, "r");
         if (!fstatSync(fd).isFile()) return null;
         const buf = Buffer.alloc(64 * 1024);
@@ -688,6 +690,7 @@ function realFs(cwd, maxLines = 500) {
           if (got === 0) break;
           if (total < 8192 && buf.subarray(0, Math.min(got, 8192 - total)).includes(0)) return null;
           total += got;
+          if (total >= MAX_READ_BYTES) return cap;
           for (let i = 0; i < got; i++) {
             if (buf[i] === 10) {
               lines2++;
@@ -857,7 +860,8 @@ import { join as join6 } from "node:path";
 var BUILTINS = new Set(
   "invalid question bash read glob grep edit write task webfetch todowrite websearch skill apply_patch".split(" ")
 );
-var LIMIT_RE = /array too long|maximum length 128|too many tools|tools.*(limit|maximum)/i;
+var LIMIT_RE = /array too long|\b128\b.{0,80}\btools?\b|\btools?\b.{0,80}\b128\b/is;
+var BODY_MAX = 4e3;
 var EXCERPT = 120;
 var MAX_SERVERS = 200;
 function stateFile() {
@@ -911,7 +915,10 @@ var toolBudget = (ctx) => {
         return;
       }
       const state = readState();
-      if (state.overBudget) {
+      const model = typeof cfg?.model === "string" ? cfg.model : "";
+      const provider = model.split("/")[0];
+      const providerMatches = provider !== "" && new RegExp(opts.providerPattern, "i").test(provider);
+      if (state.overBudget && providerMatches) {
         const turnedOff = [];
         for (const name of opts.disableFirst) {
           if (name in mcp && mcp[name] && typeof mcp[name] === "object") {
@@ -929,9 +936,7 @@ var toolBudget = (ctx) => {
         }
       }
       const enabled = names.filter((n) => mcp[n]?.enabled !== false);
-      const model = typeof cfg?.model === "string" ? cfg.model : "";
-      const provider = model.split("/")[0];
-      if (provider && enabled.length > opts.maxServers && new RegExp(opts.providerPattern, "i").test(provider)) {
+      if (providerMatches && enabled.length > opts.maxServers) {
         pending.push({
           message: `${enabled.length} MCP servers enabled for ${provider}. OpenAI-compatible endpoints reject requests with more than 128 tool definitions. Fewer servers per project or lazy loading keeps requests under the cap.`,
           variant: "warning"
@@ -943,7 +948,7 @@ var toolBudget = (ctx) => {
       if (event?.type !== "session.error" || errorHandled) return;
       const data = event.properties?.error?.data;
       const raw = data?.message ?? data?.responseBody ?? "";
-      const text = typeof raw === "string" ? raw : "";
+      const text = typeof raw === "string" ? raw.slice(0, BODY_MAX) : "";
       if (!LIMIT_RE.test(text)) return;
       errorHandled = true;
       const excerpt = text.slice(0, EXCERPT);

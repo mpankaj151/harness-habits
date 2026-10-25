@@ -1,3 +1,4 @@
+import os
 import json
 from pathlib import Path
 
@@ -55,3 +56,19 @@ def test_capped_count_renders_more_than():
     assert "800 lines" in d.message
     d = guard.evaluate_read("big.txt", None, "/work", FakeFS({"big.txt": 501}), RULES)
     assert "more than 500 lines" in d.message
+
+
+def test_realfs_ignores_fifos_directories_and_caps_reads(tmp_path):
+    from harness_habits.guard import RealFS
+    fs = RealFS(str(tmp_path), 500)
+    special = tmp_path / "pipe"
+    if hasattr(os, "mkfifo"):
+        os.mkfifo(special)
+    else:
+        special.mkdir()
+    assert fs.line_count("pipe") is None
+    assert fs.line_count(".") is None
+    (tmp_path / "small.txt").write_text("a\nb\nc")
+    (tmp_path / "wide.txt").write_text("x" * (3 * 1024 * 1024))
+    assert fs.line_count("small.txt") == 3
+    assert fs.line_count("wide.txt") == 501

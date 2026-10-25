@@ -1,9 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
-import { evaluate } from "./guard-engine.ts";
+import { evaluate, realFs } from "./guard-engine.ts";
 import type { FileSystem } from "./guard-engine.ts";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
@@ -46,4 +48,24 @@ test("prefixes are stripped", () => {
 test("engine errors allow", () => {
   const boom: FileSystem = { lineCount() { throw new Error("x"); } };
   assert.equal(evaluate("cat a.txt", "/work", boom, rules).action, "allow");
+});
+
+test("realFs: a FIFO or directory is not opened and counts as unreadable (no hang)", () => {
+  const d = mkdtempSync(join(tmpdir(), "hh-fs-"));
+  let special = join(d, "pipe");
+  try {
+    execFileSync("mkfifo", [special]);
+  } catch {
+    special = join(d, "adir");
+    mkdirSync(special);
+  }
+  assert.equal(realFs(d).lineCount(special), null);
+});
+
+test("realFs: counts lines, caps at max+1, and stops reading after 2 MiB", () => {
+  const d = mkdtempSync(join(tmpdir(), "hh-fs-"));
+  writeFileSync(join(d, "small.txt"), "a\nb\nc");
+  writeFileSync(join(d, "wide.txt"), "x".repeat(3 * 1024 * 1024)); // one huge line, no newline
+  assert.equal(realFs(d).lineCount("small.txt"), 3);
+  assert.equal(realFs(d).lineCount("wide.txt"), 501);
 });

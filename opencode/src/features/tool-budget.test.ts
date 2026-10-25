@@ -95,14 +95,14 @@ test("session.error: responseBody fallback, excerpt capped, non-matches and miss
   await s.hooks.event(err({}));
   assert.equal(s.toasts.length, 0);
   assert.equal(existsSync(s.file), false);
-  await s.hooks.event(err({ responseBody: "tools exceed the maximum allowed " + "x".repeat(300) }));
+  await s.hooks.event(err({ responseBody: "tools exceed the maximum of 128 allowed " + "x".repeat(300) }));
   assert.equal(s.toasts.length, 1);
   assert.ok(JSON.parse(readFileSync(s.file, "utf8")).lastError.length <= 120);
 });
 
 test("persisted overBudget disables disableFirst servers present in cfg.mcp, toast once", async () => {
   const s = setup({ disableFirst: ["a", "missing", "b"] }, { updated: "x", overBudget: true, servers: [], disabled: [] });
-  const cfg: any = { mcp: { a: { enabled: true }, b: {}, c: {} } };
+  const cfg: any = { model: "openai/gpt-5", mcp: { a: { enabled: true }, b: {}, c: {} } };
   await s.hooks.config(cfg);
   assert.equal(cfg.mcp.a.enabled, false);
   assert.equal(cfg.mcp.b.enabled, false);
@@ -112,6 +112,27 @@ test("persisted overBudget disables disableFirst servers present in cfg.mcp, toa
   assert.equal(s.toasts.length, 1);
   assert.match(s.toasts[0], /a, b/);
   assert.deepEqual(JSON.parse(readFileSync(s.file, "utf8")).disabled, ["a", "b"]);
+});
+
+test("disableFirst applies only when the configured provider matches providerPattern", async () => {
+  const seed = { updated: "x", overBudget: true, servers: [], disabled: [] };
+  for (const model of ["anthropic/claude", undefined]) {
+    const s = setup({ disableFirst: ["a"] }, seed);
+    const cfg: any = { ...(model ? { model } : {}), mcp: { a: {} } };
+    await s.hooks.config(cfg);
+    assert.equal(cfg.mcp.a.enabled, undefined);
+  }
+});
+
+test("unrelated tool errors do not set the sticky flag; only the first 4000 chars are scanned", async () => {
+  const s = setup();
+  await s.hooks.event(err({ message: "Invalid 'messages[3].tools[0].function.name': string too long. Expected a string with maximum length 64, but got a string with length 80." }));
+  await s.hooks.event(err({ message: "tools limit exceeded for this plan" }));
+  await s.hooks.event(err({ responseBody: "x".repeat(4000) + "Invalid 'tools': array too long" }));
+  assert.equal(s.toasts.length, 0);
+  assert.equal(existsSync(s.file), false);
+  await s.hooks.event(err({ message: "Invalid 'tools': array too long. Expected an array with maximum length 128, but got an array with length 140" }));
+  assert.equal(s.toasts.length, 1);
 });
 
 test("overBudget false leaves servers alone; corrupt file ignored", async () => {
@@ -131,7 +152,7 @@ test("tool.execute.before records non-builtin ids with underscore", async () => 
   for (const tool of ["bash", "apply_patch", "github_create_issue", "github_create_issue", "plain"]) {
     await s.hooks["tool.execute.before"]({ tool, sessionID: "s", callID: "c" }, { args: {} });
   }
-  await s.hooks.event(err({ message: "too many tools" }));
+  await s.hooks.event(err({ message: "Invalid 'tools': array too long" }));
   assert.deepEqual(JSON.parse(readFileSync(s.file, "utf8")).servers, ["github_create_issue"]);
 });
 
