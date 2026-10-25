@@ -408,23 +408,37 @@ Read `docs/dev/claude-hooks.md`.
 
 ## Task 8: OpenCode tool budget guard
 
-Read `docs/dev/opencode-plugin-api.md` (config hook, tool.ids, mcp.status).
+Read `docs/dev/opencode-plugin-api.md` (config hook, events).
+CONTROLLER FINDING (2026-10-25, live check against `opencode serve` 1.18.15 with an MCP server
+connected): `client.tool.ids()` and `client.tool.list()` return ONLY built-in tools; no HTTP route or
+SDK call exposes MCP tool lists to a plugin. The guard therefore cannot count MCP tools up front.
+Design, in priority order:
 - `opencode/src/features/tool-budget.ts`:
   - `config(cfg)`: capture `cfg.mcp` (name → {enabled?, ...}), `cfg.model`, `cfg.plugin`. Detect
     lazy-mcp: any plugin spec string containing `lazy-mcp`, or `cfg.mcp` non-empty and every entry
-    `enabled === false` → set `skip = true` and log once. Apply persisted `disableFirst` decisions:
-    read `<data dir>/mcp-tool-counts.json` `{updated, total, servers: {name: count}, disabled: [...]}`;
-    for each name in `options.toolBudget.disableFirst` that is present in `cfg.mcp` and in the
-    persisted over-budget list → `cfg.mcp[name].enabled = false` and remember to toast.
-  - After startup: on `mcp.tools.changed` and on the first idle, call `client.tool.ids()` and
-    `client.mcp.status()`; group tool ids by server using the longest matching `<server>_` prefix
-    from the status's server names; total = ids.length. Persist the file above.
-    If `total > budget` and the current model's providerID (from the last assistant message or
-    `cfg.model.split("/")[0]`) matches `new RegExp(options.toolBudget.providerPattern, "i")` →
-    toast `"<total> tools exposed (budget <budget>). Largest: a (n), b (n), c (n). Disable servers per project or use lazy loading."` once per run, and log.
-  - If `client.tool.ids` is missing or throws → log debug and do nothing.
-- Tests with fake client: grouping, lazy-mcp detection both ways, persistence, next-run disabling,
-  provider pattern gating.
+    `enabled === false` → set `skip = true` and log once. Server heuristic: `enabledServers =`
+    entries with `enabled !== false`; if `enabledServers.length > options.toolBudget.maxServers`
+    (default 8) and the configured provider (`cfg.model.split("/")[0]`) matches
+    `new RegExp(options.toolBudget.providerPattern, "i")` → remember to toast once after startup:
+    `"<n> MCP servers enabled for <provider>. OpenAI-compatible endpoints reject requests with more than 128 tool definitions. Fewer servers per project or lazy loading keeps requests under the cap."`.
+    Apply persisted decisions: read `<data dir>/mcp-tool-budget.json`
+    `{updated, overBudget: boolean, lastError?: string, servers: [...names], disabled: [...]}`; when
+    `overBudget` is true, for each name in `options.toolBudget.disableFirst` present in `cfg.mcp` →
+    `cfg.mcp[name].enabled = false`, record in `disabled`, toast once after startup naming them.
+  - Reactive detection (the reliable signal): on `event` `session.error`, read
+    `properties.error?.data?.message ?? properties.error?.data?.responseBody ?? ""`; if it matches
+    `/array too long|maximum length 128|too many tools|tools.*(limit|maximum)/i` → toast
+    `"The provider rejected the request because too many tools were attached (<excerpt, 120 chars>). Disable MCP servers for this project or enable lazy loading."`, log, and persist
+    `overBudget: true, lastError: <excerpt>` so `disableFirst` applies on the next run. Once per run.
+  - Learned prefixes: in `tool.execute.before`, record tool ids containing `_` that are not built-ins
+    (`invalid question bash read glob grep edit write task webfetch todowrite websearch skill apply_patch`)
+    into `servers` as observed MCP tool names (best-effort, for the report; no gating).
+  - Any thrown error inside the feature is caught and logged; never block anything.
+- Options: `toolBudget: {maxServers: 8, providerPattern: "openai|azure", disableFirst: []}`
+  (`budget` key removed; document that per-tool counting is not available from a plugin).
+- Tests with fake client and temp data dir: lazy-mcp detection both ways, server heuristic gating by
+  provider pattern, `session.error` regex matching (positive, negative, missing fields), persistence
+  and next-run `disableFirst` application, once-per-run toasts, learned-prefix recording.
 - Standalone build; rebuild dist; `docs/tool-budget.md` (links to the lazy-mcp tutorial repo
   `~/knowledge/opencode-lazy-mcp-tutorial` described as "a colleague's lazy-mcp plugin, documented
   separately" with no code copied, and to `OPENCODE_EXPERIMENTAL_CODE_MODE`).
