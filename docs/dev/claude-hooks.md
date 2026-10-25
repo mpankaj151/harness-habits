@@ -35,6 +35,9 @@ Also available: `updatedToolOutput`, `decision:"block"` + `reason`.
 ### SessionStart output
 Plain stdout on exit 0 is added to context, or `{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"..."}}`.
 
+### ConfigChange
+Stdin adds `source` (`user_settings | project_settings | local_settings | policy_settings | skills`) and optional `file_path`. Output supports ONLY `decision: "block"` (`reason` accepted but never shown); `systemMessage` and `continue` are discarded; no `additionalContext`, plain stdout does not reach the model. A hook here can audit or block, never inform Claude. (Verified 2026-10-25; harness-habits therefore ships no ConfigChange hook.)
+
 ### PreCompact
 Cannot inject text into the compaction (systemMessage/continue discarded). Can only block (exit 2). Workaround: write a snapshot file here; re-inject it from `SessionStart` with `source: "compact"`.
 

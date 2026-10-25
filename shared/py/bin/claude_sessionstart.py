@@ -41,7 +41,8 @@ def main():
         p = snap_dir / f"{sid}.md"
         if sid and p.is_file():
             parts.append("Snapshot taken before the last compaction of this session:\n" + p.read_text())
-    if source == "startup" and os.environ.get("HH_STARTUP_HANDOFF") == "1" and snap_dir.is_dir():
+    if (source == "startup" and os.environ.get("HH_STARTUP_HANDOFF") == "1"
+            and features.enabled("precompact-snapshot") and snap_dir.is_dir()):
         p = _newest_for_cwd(snap_dir, cwd)
         if p:
             parts.append("Snapshot from the most recent earlier session in this directory:\n" + p.read_text())

@@ -100,6 +100,13 @@ def test_sessionstart_startup_handoff(tmp_path):
     assert run("claude_sessionstart.py", p, tmp_path, {"HH_STARTUP_HANDOFF": "1"}).stdout == ""
 
 
+def test_handoff_gated_by_snapshot_feature(tmp_path):
+    run("claude_sessionend.py", {"session_id": "s-1", "transcript_path": str(FIX), "cwd": "/proj"}, tmp_path)
+    r = run("claude_sessionstart.py", {"source": "startup", "session_id": "new", "cwd": "/proj"}, tmp_path,
+            {"HH_STARTUP_HANDOFF": "1", "HH_FEATURE_PRECOMPACT_SNAPSHOT": "0"})
+    assert (r.returncode, r.stdout) == (0, "")
+
+
 def test_sessionstart_lint_and_handoff_concatenate(tmp_path):
     cwd = tmp_path / "proj"
     mkfile(cwd / "AGENTS.md", 300)
@@ -108,7 +115,7 @@ def test_sessionstart_lint_and_handoff_concatenate(tmp_path):
     assert "AGENTS.md has 300 lines" in ctx(r) and "session: s-1" in ctx(r)
 
 
-# --- PostToolUse / ConfigChange
+# --- PostToolUse
 def edit(path, sid="s-1", tool="Edit"):
     return {"tool_name": tool, "session_id": sid, "tool_input": {"file_path": path}}
 
@@ -130,14 +137,6 @@ def test_posttooluse_ignored(tmp_path):
     assert run("claude_posttooluse.py", {"tool_name": "Edit", "tool_input": "oops"}, tmp_path).returncode == 0
 
 
-def test_configchange(tmp_path):
-    p = {"hook_event_name": "ConfigChange", "session_id": "s-1", "file_path": "/p/.claude/settings.json"}
-    assert ctx(run("claude_configchange.py", p, tmp_path)) == f"/p/.claude/settings.json {MSG}"
-    assert run("claude_configchange.py", p, tmp_path).stdout == ""
-    assert run("claude_configchange.py", {**p, "hook_event_name": "Other"}, tmp_path).stdout == ""
-    assert "A config file" in ctx(run("claude_configchange.py", {"hook_event_name": "ConfigChange", "session_id": "z"}, tmp_path))
-
-
 # --- PostModelSwitch
 def test_postmodelswitch(tmp_path):
     r = run("claude_postmodelswitch.py", {}, tmp_path)
@@ -146,7 +145,7 @@ def test_postmodelswitch(tmp_path):
 
 
 @pytest.mark.parametrize("script", ["claude_sessionstart.py", "claude_precompact.py", "claude_sessionend.py",
-                                    "claude_posttooluse.py", "claude_configchange.py", "claude_postmodelswitch.py"])
+                                    "claude_posttooluse.py", "claude_postmodelswitch.py"])
 @pytest.mark.parametrize("raw", ["", "garbage", "[1]"])
 def test_invalid_stdin_exits_zero(script, raw, tmp_path):
     r = run(script, None, tmp_path, raw=raw)
@@ -166,6 +165,6 @@ def test_lint_cli(tmp_path):
 
 def test_hooks_json_events():
     h = json.loads((ROOT / "hooks" / "hooks.json").read_text())["hooks"]
-    assert set(h) == {"PreToolUse", "SessionStart", "PostToolUse", "ConfigChange", "PostModelSwitch", "PreCompact", "SessionEnd"}
+    assert set(h) == {"PreToolUse", "SessionStart", "PostToolUse", "PostModelSwitch", "PreCompact", "SessionEnd"}
     assert h["PostToolUse"][0]["matcher"] == "Edit|Write|MultiEdit"
     assert h["PreCompact"][0]["hooks"][0]["timeout"] == 30

@@ -36,17 +36,6 @@
         ]
       }
     ],
-    "ConfigChange": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_configchange.py\"",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
     "PostModelSwitch": [
       {
         "hooks": [

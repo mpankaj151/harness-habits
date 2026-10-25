@@ -8,3 +8,21 @@ path-scoped rules load only when matching files are touched.
 
 Disable with feature `size-lint`. Run by hand: `python3 -I shared/py/bin/lint_cli.py [--strict] [--cwd PATH]`;
 the pre-commit hook id is `harness-habits-size-lint`.
+
+## pre-commit
+
+Use a local hook with an absolute path to `lint_cli.py` (installed plugin path or a checkout):
+
+```yaml
+repos:
+  - repo: local
+    hooks:
+      - id: harness-habits-size-lint
+        name: harness-habits size lint
+        entry: python3 -I /absolute/path/to/harness-habits/shared/py/bin/lint_cli.py --strict
+        language: system
+        pass_filenames: false
+        always_run: true
+```
+
+A packaged remote pre-commit hook is future work.
