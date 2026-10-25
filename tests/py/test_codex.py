@@ -73,11 +73,11 @@ def test_sessionstart_plain_stdout(tmp_path):
     proj = tmp_path / "proj"
     proj.mkdir()
     (proj / "AGENTS.md").write_text("x\n" * 5)
-    (proj / "CLAUDE.md").write_text("x\n" * 900)
+    (proj / "CLAUDE.md").write_text("x\n" * 201)
     r = run("codex_sessionstart.py", {"cwd": str(proj), "source": "startup"}, tmp_path)
     assert r.returncode == 0
     assert not r.stdout.lstrip().startswith("{")
-    assert "CLAUDE.md" in r.stdout or r.stdout == ""
+    assert "CLAUDE.md has 201 lines (guideline 200 lines;" in r.stdout
     off = run("codex_sessionstart.py", {"cwd": str(proj), "source": "startup"}, tmp_path, {"HH_FEATURE_SIZE_LINT": "0"})
     assert off.stdout == ""
 

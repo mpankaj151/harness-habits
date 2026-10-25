@@ -32,8 +32,10 @@ In `~/.config/harness-habits/opencode.json`:
 { "toolBudget": { "maxServers": 8, "providerPattern": "openai|azure", "disableFirst": ["big-server"] } }
 ```
 
+`overBudget` is sticky until `<data dir>/mcp-tool-budget.json` is deleted. `disableFirst` takes effect on the next run.
+
 ## Alternatives
 
 - Lazy MCP loading: a colleague's lazy-mcp plugin, documented separately in `~/knowledge/opencode-lazy-mcp-tutorial`.
   No code from it is used here.
-- `OPENCODE_EXPERIMENTAL_CODE_MODE`: an OpenCode experimental environment variable worth trying for reducing the number of tool definitions sent; its behaviour is not verified here.
+- `OPENCODE_EXPERIMENTAL_CODE_MODE`: a real flag (OpenCode 1.17.14+, undocumented) that removes MCP tool definitions from the request and exposes a single `execute` tool with a catalog.

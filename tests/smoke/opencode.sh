@@ -2,7 +2,8 @@
 # Smoke test: load the built plugin in a real OpenCode run.
 #   scenario 1: the output guard rewrites/denies a big cat
 #   scenario 2: idle compaction is forced (absoluteTokens=1) and a handoff note is written
-# Uses OPENCODE_CONFIG_DIR=<sandbox>; the real ~/.config/opencode is read for auth but never written.
+# Uses OPENCODE_CONFIG_DIR=<sandbox> and XDG_CONFIG_HOME=<sandbox>/xdg; provider and model settings are copied
+# (read-only) from ~/.config/opencode/opencode.json into the sandbox. The real config is never written.
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../.." && pwd)
@@ -59,6 +60,7 @@ PID=$!
 wait_for "$LOG" "$PID" "more than 500 lines" || echo "(scenario 1: proof line not seen before timeout or exit)"
 stop "$PID"
 
+rm -rf "$SANDBOX/work/.opencode"   # scenario 2 proof must not see scenario 1 output
 echo "== scenario 2: forced idle compaction (log: $LOG2) =="
 cat > "$SANDBOX/xdg/harness-habits/opencode.json" <<'J'
 {"features":{"idle-compaction":true},"compaction":{"absoluteTokens":1,"disableForProviders":[]},"debounceMs":0}
