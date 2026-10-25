@@ -39,3 +39,10 @@ test("env off values and bad file", () => {
   assert.equal(o.features["output-guard"], false);
   assert.equal(o.features["cost-logger"], false);
 });
+
+test("optional keys inside known sections survive file and npm merge", () => {
+  const o = loadOptions({ handoff: { extra: 2 } }, env({ compaction: { absoluteTokens: 1 } }));
+  assert.equal(o.compaction.absoluteTokens, 1);
+  assert.equal(o.compaction.pct, 0.6);
+  assert.equal((o.handoff as any).extra, 2);
+});

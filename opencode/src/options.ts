@@ -46,6 +46,13 @@ function isObject(v: unknown): v is Record<string, any> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
+// Inside known sections any key is accepted, so optional keys (compaction.absoluteTokens) survive.
+function mergeSection(target: Record<string, any>, src: Record<string, any>): void {
+  for (const [k, v] of Object.entries(src)) {
+    if (v !== undefined) target[k] = v;
+  }
+}
+
 function merge(target: Record<string, any>, src: unknown): void {
   if (!isObject(src)) return;
   for (const [k, v] of Object.entries(src)) {
@@ -56,8 +63,8 @@ function merge(target: Record<string, any>, src: unknown): void {
         }
       }
     } else if (isObject(v) && isObject(target[k])) {
-      merge(target[k], v);
-    } else if (k in target && v !== undefined) {
+      mergeSection(target[k], v);
+    } else if ((k in target || k === "debounceMs") && v !== undefined) {
       target[k] = v;
     }
   }

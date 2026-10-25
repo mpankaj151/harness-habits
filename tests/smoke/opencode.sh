@@ -24,7 +24,7 @@ echo "starting opencode (log: $LOG) ..."
 OPENCODE_CONFIG_DIR="$SANDBOX" opencode run --print-logs --log-level DEBUG "$PROMPT" >"$LOG" 2>&1 &
 PID=$!
 for _ in $(seq 1 90); do   # up to 180 s
-  if grep -q "has 800 lines" "$LOG" 2>/dev/null; then sleep 5; break; fi
+  if grep -q "more than 500 lines" "$LOG" 2>/dev/null; then sleep 5; break; fi
   kill -0 "$PID" 2>/dev/null || break
   sleep 2
 done
@@ -32,6 +32,6 @@ kill "$PID" 2>/dev/null || true; sleep 1; kill -9 "$PID" 2>/dev/null || true
 
 echo
 echo "== proof lines =="
-if ! grep -E 'service=harness-habits|has 800 lines|failed to load plugin|Failed to load plugin' "$LOG" | sed -E 's/timestamp=[^ ]+ //' | cut -c1-240; then
+if ! grep -E 'service=harness-habits|more than 500 lines|failed to load plugin|Failed to load plugin' "$LOG" | sed -E 's/timestamp=[^ ]+ //' | cut -c1-240; then
   echo "(no harness-habits lines: the plugin did not fire. Check $LOG)"
 fi
