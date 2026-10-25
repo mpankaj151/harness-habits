@@ -1,0 +1,38 @@
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.11", "3.12"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: astral-sh/setup-uv@v5
+      - name: Python tests
+        run: uv run --with pytest pytest tests/py -q
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: opencode/package-lock.json
+      - name: OpenCode build and tests
+        run: cd opencode && npm ci && npm run build && npm test
+      - name: Built artefact is current
+        run: git diff --exit-code opencode/dist
+      - name: Validate Claude plugin
+        # Pinned on purpose: bump deliberately so a new release cannot break CI silently.
+        run: npm i -g @anthropic-ai/claude-code@2.1.310 && claude plugin validate .
+      - name: JSON files parse
+        run: jq empty hooks/hooks.json codex/hooks.json .claude-plugin/*.json
+      - name: Shellcheck
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then brew install shellcheck; else sudo apt-get install -y shellcheck; fi
+          shellcheck install.sh tests/smoke/*.sh

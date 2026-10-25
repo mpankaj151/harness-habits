@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "max_lines": 500,
+  "head_n": 200,
+  "full_read_commands": ["cat", "less", "more"],
+  "unbounded_commands": ["grep", "rg", "find"],
+  "ls_recursive_flags": ["-R", "--recursive"],
+  "skip_flags": {
+    "grep": ["-c", "-l", "-L", "-q", "--count", "--files-with-matches", "--files-without-match", "--quiet"],
+    "rg":   ["-c", "-l", "--count", "--files", "--files-with-matches", "--count-matches", "-q", "--quiet"],
+    "find": ["-exec", "-execdir", "-delete", "-ok", "-okdir"]
+  },
+  "bounding_commands": ["head", "tail", "wc", "less", "more"],
+  "follow_flags": ["-f", "-F", "--follow"],
+  "operators": ["|", "||", "&&", ";", "&", ">", ">>", "<", "<<", "<<<", "2>", "2>>", "&>", "(", ")"],
+  "messages": {
+    "deny_full_read": "harness-habits: {path} has {lines} lines (limit {max}). A line range keeps output bounded, for example: sed -n '1,{head}p' {path}",
+    "deny_follow": "harness-habits: `tail {flag}` never returns. `tail -n {head} {path}` shows the end once.",
+    "rewrite_note": "harness-habits appended `| head -n {head}` to bound the output.",
+    "advise_unbounded": "harness-habits: `{cmd}` in this pipeline has no output bound. `| head -n {head}`, `-l` or `-c` keeps the result small.",
+    "advise_read": "harness-habits: {path} has {lines} lines. Read without `limit` loads all of them; `offset`/`limit` or a grep first keeps context small."
+  }
+}

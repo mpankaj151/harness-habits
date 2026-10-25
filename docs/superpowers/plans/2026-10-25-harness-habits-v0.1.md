@@ -1,7 +1,7 @@
 # harness-habits v0.1 implementation plan
 
-Spec: `/Users/nehamodi/.claude/plans/delightful-chasing-marble.md` (approved 2026-10-25).
-Repo root: `/Users/nehamodi/Documents/Projects/personal-projects/self/harness-habits`, branch `build/v0.1`.
+Spec: `~/.claude/plans/delightful-chasing-marble.md` (approved 2026-10-25).
+Repo root: `~/Documents/Projects/personal-projects/self/harness-habits`, branch `build/v0.1`.
 Developer reference notes (read the one your task names): `docs/dev/claude-hooks.md`,
 `docs/dev/opencode-plugin-api.md`, `docs/dev/codex-hooks.md`.
 
@@ -205,7 +205,7 @@ Files:
   using a fake fs; `shellsplit.test.ts` with quote/operator cases; `compose.test.ts` proving a
   throwing feature does not stop the next one and a disabled feature is not composed;
   `output-guard.test.ts` proving in-place mutation and throw-on-deny with a fake client.
-- `tests/smoke/opencode.sh`: adapted from `~/knowledge/opencode-lazy-mcp-tutorial/sandbox/run.sh`:
+- `tests/smoke/opencode.sh`: adapted from `<lazy-mcp tutorial>/sandbox/run.sh`:
   creates `tests/smoke/.sandbox/` with `opencode.json` `{"$schema":"https://opencode.ai/config.json","model":"ollama/qwen3.8-fast"}`
   (no mcp), copies `opencode/dist/harness-habits.js` to `.sandbox/plugins/`, writes an 800-line
   `.sandbox/work/big.txt`, runs
@@ -281,9 +281,9 @@ Read `docs/dev/opencode-plugin-api.md` (sections: events, client, compaction, lo
   `opencode.jsonc`, `AGENTS.md`, `CLAUDE.md`} → toast once per (session, file):
   `"<file> changed; it is part of the prompt prefix, so the next turn re-reads the full prefix (cache miss)."`.
   Check the real arg name for the edit/write tools in `docs/dev/opencode-plugin-api.md`; if not
-  listed, read `~/knowledge/opencode-lazy-mcp-tutorial/sandbox/node_modules/@opencode-ai/plugin/dist/tool.d.ts`
+  listed, read `<lazy-mcp tutorial>/sandbox/node_modules/@opencode-ai/plugin/dist/tool.d.ts`
   or the OpenCode source clone at
-  `/private/tmp/claude-501/-Users-nehamodi/6d0c91a1-6778-482f-8550-42a4780ed826/scratchpad/oc/packages/opencode/src/tool/{edit,write}.ts`.
+  `<scratch>/oc/packages/opencode/src/tool/{edit,write}.ts`.
 - `opencode/src/features/size-lint.ts`: `experimental.chat.system.transform` once per sessionID
   (skip subagents by consulting the idle pipeline's parentID cache, or `client.session.get`):
   compute findings for `<worktree>/AGENTS.md`, `<worktree>/CLAUDE.md`, `~/.config/opencode/AGENTS.md`
@@ -303,7 +303,7 @@ Read `docs/dev/claude-hooks.md`.
   `cwd/AGENTS.md`, `home/.claude/CLAUDE.md` over 200 lines; auto-memory
   `home/.claude/projects/<slug>/memory/MEMORY.md` over 180 lines or over 22528 bytes where
   `slug = re.sub(r"[^A-Za-z0-9]", "-", str(cwd.resolve()))` (verify against the directory names in
-  `~/.claude/projects`, e.g. `/Users/nehamodi` → `-Users-nehamodi`); `.claude/rules/` missing while
+  `~/.claude/projects`, e.g. `/Users/alice` → `-Users-alice`); `.claude/rules/` missing while
   `CLAUDE.md` > 200 lines → note "path-scoped rules in .claude/rules/ load only when matching files are touched".
   `format(findings) -> str` one factual line each.
 - `shared/py/bin/claude_sessionstart.py`: stdin `source`. If `source in {"startup","clear"}` and
@@ -319,7 +319,7 @@ Read `docs/dev/claude-hooks.md`.
   `notebook_path`), deduped. Tolerant of unknown line shapes. `render(snapshot, cwd, session_id) -> str`
   markdown with a header block `session: <id>` / `cwd: <cwd>` / `written: <ISO>`.
   Build the fixture `tests/fixtures/transcripts/sample.jsonl` from the real shape: inspect one file
-  under `~/.claude/projects/-Users-nehamodi/*.jsonl` READ-ONLY to learn the structure (`type`,
+  under `~/.claude/projects/-Users-alice/*.jsonl` READ-ONLY to learn the structure (`type`,
   `message.role`, `message.content[]` with `type: text|tool_use|tool_result`), then hand-write a
   small anonymised fixture (no real content).
 - `shared/py/bin/claude_precompact.py` and `claude_sessionend.py`: if `precompact-snapshot`
@@ -408,25 +408,39 @@ Read `docs/dev/claude-hooks.md`.
 
 ## Task 8: OpenCode tool budget guard
 
-Read `docs/dev/opencode-plugin-api.md` (config hook, tool.ids, mcp.status).
+Read `docs/dev/opencode-plugin-api.md` (config hook, events).
+CONTROLLER FINDING (2026-10-25, live check against `opencode serve` 1.18.15 with an MCP server
+connected): `client.tool.ids()` and `client.tool.list()` return ONLY built-in tools; no HTTP route or
+SDK call exposes MCP tool lists to a plugin. The guard therefore cannot count MCP tools up front.
+Design, in priority order:
 - `opencode/src/features/tool-budget.ts`:
   - `config(cfg)`: capture `cfg.mcp` (name → {enabled?, ...}), `cfg.model`, `cfg.plugin`. Detect
     lazy-mcp: any plugin spec string containing `lazy-mcp`, or `cfg.mcp` non-empty and every entry
-    `enabled === false` → set `skip = true` and log once. Apply persisted `disableFirst` decisions:
-    read `<data dir>/mcp-tool-counts.json` `{updated, total, servers: {name: count}, disabled: [...]}`;
-    for each name in `options.toolBudget.disableFirst` that is present in `cfg.mcp` and in the
-    persisted over-budget list → `cfg.mcp[name].enabled = false` and remember to toast.
-  - After startup: on `mcp.tools.changed` and on the first idle, call `client.tool.ids()` and
-    `client.mcp.status()`; group tool ids by server using the longest matching `<server>_` prefix
-    from the status's server names; total = ids.length. Persist the file above.
-    If `total > budget` and the current model's providerID (from the last assistant message or
-    `cfg.model.split("/")[0]`) matches `new RegExp(options.toolBudget.providerPattern, "i")` →
-    toast `"<total> tools exposed (budget <budget>). Largest: a (n), b (n), c (n). Disable servers per project or use lazy loading."` once per run, and log.
-  - If `client.tool.ids` is missing or throws → log debug and do nothing.
-- Tests with fake client: grouping, lazy-mcp detection both ways, persistence, next-run disabling,
-  provider pattern gating.
+    `enabled === false` → set `skip = true` and log once. Server heuristic: `enabledServers =`
+    entries with `enabled !== false`; if `enabledServers.length > options.toolBudget.maxServers`
+    (default 8) and the configured provider (`cfg.model.split("/")[0]`) matches
+    `new RegExp(options.toolBudget.providerPattern, "i")` → remember to toast once after startup:
+    `"<n> MCP servers enabled for <provider>. OpenAI-compatible endpoints reject requests with more than 128 tool definitions. Fewer servers per project or lazy loading keeps requests under the cap."`.
+    Apply persisted decisions: read `<data dir>/mcp-tool-budget.json`
+    `{updated, overBudget: boolean, lastError?: string, servers: [...names], disabled: [...]}`; when
+    `overBudget` is true, for each name in `options.toolBudget.disableFirst` present in `cfg.mcp` →
+    `cfg.mcp[name].enabled = false`, record in `disabled`, toast once after startup naming them.
+  - Reactive detection (the reliable signal): on `event` `session.error`, read
+    `properties.error?.data?.message ?? properties.error?.data?.responseBody ?? ""`; if it matches
+    `/array too long|maximum length 128|too many tools|tools.*(limit|maximum)/i` → toast
+    `"The provider rejected the request because too many tools were attached (<excerpt, 120 chars>). Disable MCP servers for this project or enable lazy loading."`, log, and persist
+    `overBudget: true, lastError: <excerpt>` so `disableFirst` applies on the next run. Once per run.
+  - Learned prefixes: in `tool.execute.before`, record tool ids containing `_` that are not built-ins
+    (`invalid question bash read glob grep edit write task webfetch todowrite websearch skill apply_patch`)
+    into `servers` as observed MCP tool names (best-effort, for the report; no gating).
+  - Any thrown error inside the feature is caught and logged; never block anything.
+- Options: `toolBudget: {maxServers: 8, providerPattern: "openai|azure", disableFirst: []}`
+  (`budget` key removed; document that per-tool counting is not available from a plugin).
+- Tests with fake client and temp data dir: lazy-mcp detection both ways, server heuristic gating by
+  provider pattern, `session.error` regex matching (positive, negative, missing fields), persistence
+  and next-run `disableFirst` application, once-per-run toasts, learned-prefix recording.
 - Standalone build; rebuild dist; `docs/tool-budget.md` (links to the lazy-mcp tutorial repo
-  `~/knowledge/opencode-lazy-mcp-tutorial` described as "a colleague's lazy-mcp plugin, documented
+  `<lazy-mcp tutorial>` described as "a colleague's lazy-mcp plugin, documented
   separately" with no code copied, and to `OPENCODE_EXPERIMENTAL_CODE_MODE`).
 
 ## Task 9: Codex files, MCP-set templates, docs

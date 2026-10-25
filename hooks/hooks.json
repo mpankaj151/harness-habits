@@ -1,0 +1,73 @@
+{
+  "description": "harness-habits: token, memory and cost hygiene",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_pretooluse.py\" && python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_pretooluse.py\" || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_sessionstart.py\" && python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_sessionstart.py\" || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_posttooluse.py\" && python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_posttooluse.py\" || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostModelSwitch": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_postmodelswitch.py\" && python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_postmodelswitch.py\" || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_precompact.py\" && python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_precompact.py\" || true",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_sessionend.py\" && python3 -I \"${CLAUDE_PLUGIN_ROOT}/shared/py/bin/claude_sessionend.py\" || true",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

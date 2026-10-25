@@ -1,0 +1,16 @@
+{"type":"mode","mode":"default"}
+{"type":"user","uuid":"u1","sessionId":"s-1","timestamp":"2026-01-01T10:00:00Z","message":{"role":"user","content":"Please add a widget parser"}}
+{"type":"assistant","uuid":"a1","timestamp":"2026-01-01T10:00:05Z","message":{"role":"assistant","content":[{"type":"thinking","thinking":"hmm","signature":"x"},{"type":"text","text":"I will start with the parser."},{"type":"tool_use","id":"t1","name":"Write","input":{"file_path":"/proj/src/parser.py","content":"x"}}]}}
+{"type":"user","uuid":"u2","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"ok"}]}}
+{"type":"assistant","uuid":"a2","message":{"role":"assistant","content":[{"type":"tool_use","id":"t2","name":"TodoWrite","input":{"todos":[{"content":"old","status":"completed"}]}},{"type":"tool_use","id":"t3","name":"Edit","input":{"file_path":"/proj/src/parser.py","old_string":"a","new_string":"b"}},{"type":"tool_use","id":"t4","name":"NotebookEdit","input":{"notebook_path":"/proj/nb.ipynb"}}]}}
+not valid json
+[1,2,3]
+{"type":"user","uuid":"u3","message":{"role":"user","content":[{"type":"text","text":"Now add tests"},{"type":"image","source":{}}]}}
+{"type":"user","isSidechain":true,"message":{"role":"user","content":"sidechain prompt ignored"}}
+{"type":"api-request-blob","message":{"role":"user","content":[{"type":"text","text":"blob ignored"}]}}
+{"type":"user","message":{"role":"user","content":"second"}}
+{"type":"user","message":{"role":"user","content":"third"}}
+{"type":"user","message":{"role":"user","content":"fourth"}}
+{"type":"assistant","uuid":"a3","message":{"role":"assistant","content":[{"type":"tool_use","id":"t5","name":"TodoWrite","input":{"todos":[{"content":"write tests","status":"in_progress"},{"content":"ship","status":"pending"}]}},{"type":"tool_use","id":"t6","name":"MultiEdit","input":{"file_path":"/proj/tests/test_parser.py","edits":[]}},{"type":"text","text":"Tests are written."}]}}
+{"type":"user","message":{"role":"user","content":"fifth"}}
+{"type":"user","message":{"role":"user","content":"sixth"}}

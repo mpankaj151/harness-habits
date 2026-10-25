@@ -1,0 +1,1 @@
+{"name":"harness-habits","version":"0.1.0","description":"Install-once token, memory and cost hygiene for Claude Code, OpenCode and Codex CLI","author":{"name":"Pankaj Modi"},"repository":"https://github.com/mpankaj151/harness-habits","license":"MIT","keywords":["hooks","tokens","compaction","memory","cost"]}
