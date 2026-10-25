@@ -237,7 +237,7 @@ function defaultOptions() {
     features: { ...FEATURE_DEFAULTS },
     compaction: { pct: 0.6, cooldownMs: 6e4, disableForProviders: ["ollama"] },
     handoff: { maxAgeDays: 7, userMessages: 5 },
-    toolBudget: { budget: 128, providerPattern: "openai|azure", disableFirst: [] },
+    toolBudget: { maxServers: 8, providerPattern: "openai|azure", disableFirst: [] },
     debounceMs: 1500
   };
 }

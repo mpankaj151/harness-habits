@@ -24,7 +24,7 @@ export interface Options {
     contextLimits?: Record<string, number>; // "provider/model" -> context window tokens
   };
   handoff: { maxAgeDays: number; userMessages: number };
-  toolBudget: { budget: number; providerPattern: string; disableFirst: string[] };
+  toolBudget: { maxServers: number; providerPattern: string; disableFirst: string[] };
   debounceMs: number;
 }
 
@@ -33,7 +33,7 @@ export function defaultOptions(): Options {
     features: { ...FEATURE_DEFAULTS },
     compaction: { pct: 0.6, cooldownMs: 60000, disableForProviders: ["ollama"] },
     handoff: { maxAgeDays: 7, userMessages: 5 },
-    toolBudget: { budget: 128, providerPattern: "openai|azure", disableFirst: [] },
+    toolBudget: { maxServers: 8, providerPattern: "openai|azure", disableFirst: [] },
     debounceMs: 1500,
   };
 }
