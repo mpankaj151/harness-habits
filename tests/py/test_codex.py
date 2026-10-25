@@ -39,12 +39,24 @@ def test_deny(work):
     assert "limit 500" in h["permissionDecisionReason"]
 
 
-def test_rewrite_default_is_deny_with_suggestion(work):
+def test_rewrite_default_is_advisory_with_suggestion(work):
     r = run("codex_pretooluse.py", bash("grep -r foo .", work), work)
+    h = json.loads(r.stdout)["hookSpecificOutput"]
+    assert set(h) == {"hookEventName", "additionalContext"}
+    assert h["additionalContext"].endswith("Suggested: grep -r foo . | head -n 200")
+
+
+def test_rewrite_deny_mode_is_opt_in(work):
+    r = run("codex_pretooluse.py", bash("grep -r foo .", work), work, {"HH_CODEX_DENY": "1"})
     h = json.loads(r.stdout)["hookSpecificOutput"]
     assert h["permissionDecision"] == "deny" and "updatedInput" not in h
     assert h["permissionDecisionReason"].endswith("Suggested: grep -r foo . | head -n 200")
-    assert "Suggested:" in h["permissionDecisionReason"]
+
+
+def test_oversized_cat_and_tail_follow_still_deny_by_default(work):
+    for cmd in ("cat big.txt", "tail -f app.log"):
+        h = json.loads(run("codex_pretooluse.py", bash(cmd, work), work).stdout)["hookSpecificOutput"]
+        assert h["permissionDecision"] == "deny"
 
 
 def test_rewrite_enabled_allows_with_updated_input(work):

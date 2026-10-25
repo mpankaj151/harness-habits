@@ -1,7 +1,8 @@
 """Codex CLI PreToolUse hook: output guard for Bash.
 
 updatedInput on Codex requires permissionDecision "allow", which auto-approves the rewritten command.
-Rewrites are therefore reported as deny-with-suggestion unless HH_CODEX_REWRITE=1.
+Rewrites are therefore advisory by default (additionalContext carrying the suggested command, no extra turn).
+HH_CODEX_REWRITE=1 -> allow + updatedInput; HH_CODEX_DENY=1 -> deny with the suggestion in the reason.
 """
 import json
 import os
@@ -34,8 +35,10 @@ def main():
     elif d.action == "rewrite":
         if os.environ.get("HH_CODEX_REWRITE") == "1":
             _out(permissionDecision="allow", updatedInput={"command": d.command})
-        else:
+        elif os.environ.get("HH_CODEX_DENY") == "1":
             _out(permissionDecision="deny", permissionDecisionReason=f"{d.message} Suggested: {d.command}")
+        else:
+            _out(additionalContext=f"{d.message} Suggested: {d.command}")
     elif d.action == "advise":
         _out(additionalContext=d.message)
 

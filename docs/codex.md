@@ -20,7 +20,7 @@ from this checkout), those installed scripts, and the skill. Re-running the inst
 
 | Event | Script | Feature | Behaviour |
 |---|---|---|---|
-| PreToolUse (Bash) | `codex_pretooluse.py` | `output-guard` | deny, advise, or suggest a bounded rewrite |
+| PreToolUse (Bash) | `codex_pretooluse.py` | `output-guard` | deny oversized `cat` and `tail -f`; advise; suggest a bounded rewrite |
 | SessionStart | `codex_sessionstart.py` | `size-lint` | instruction-file size findings as plain stdout |
 | SessionEnd, PreCompact | `codex_sessionend.py`, `codex_precompact.py` | `precompact-snapshot` | handoff note at `~/.codex/handoff/<session_id>.md` |
 
@@ -29,9 +29,15 @@ Codex trusts hooks by hash. After installing or editing, review them with `/hook
 ### Rewrites and auto-approval
 
 On Codex, `updatedInput` is only honoured together with `permissionDecision: "allow"`, which auto-approves the
-rewritten command. By default a rewrite decision is therefore reported as a deny whose reason ends with
-`Suggested: <command>`, and the model re-issues the bounded command itself. Setting `HH_CODEX_REWRITE=1`
-switches to `allow` plus `updatedInput.command`, accepting the auto-approval.
+rewritten command. By default a rewrite decision (bare `rg`, `grep`, `find`, `ls -R`) is therefore advisory:
+the hook returns `additionalContext` ending with `Suggested: <command>` and lets the call run, so no extra
+model turn is spent. Two switches change that:
+
+- `HH_CODEX_REWRITE=1`: `allow` plus `updatedInput.command`, accepting the auto-approval.
+- `HH_CODEX_DENY=1`: the stricter earlier behaviour, a deny whose reason ends with `Suggested: <command>`
+  (costs one extra turn per rewrite). `HH_CODEX_REWRITE` wins when both are set.
+
+Oversized `cat` and `tail -f` are denied in every mode.
 
 ### Handoff notes
 
