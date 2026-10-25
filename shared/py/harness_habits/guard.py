@@ -60,14 +60,15 @@ def _has_skip(cmd: str, args: list, rules: dict) -> bool:
     return any(a in skip for a in args)
 
 
-def evaluate(command: str, cwd: str, fs: FileSystem, rules: dict) -> Decision:
+def evaluate(command: str, cwd: str, fs: FileSystem, rules: dict, background: bool = False) -> Decision:
+    """background=True: the harness runs the command detached (Claude Code run_in_background), where following a file is fine."""
     try:
-        return _evaluate(command, cwd, fs, rules)
+        return _evaluate(command, cwd, fs, rules, background)
     except Exception:  # noqa: BLE001 - never block on engine errors
         return Decision("allow")
 
 
-def _evaluate(command, cwd, fs, rules) -> Decision:
+def _evaluate(command, cwd, fs, rules, background=False) -> Decision:
     ops = set(rules["operators"])
     tokens = shellsplit.split(command)
     if not tokens:
@@ -102,7 +103,7 @@ def _evaluate(command, cwd, fs, rules) -> Decision:
 
     if cmd == "tail":
         flag = next((a for a in args if a in rules["follow_flags"]), None)
-        if flag:
+        if flag and not background:
             path = next((a for a in reversed(args) if not a.startswith("-")), "<file>")
             return Decision("deny", message=_fmt(rules, "deny_follow", flag=flag, path=path))
         return Decision("allow")

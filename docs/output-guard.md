@@ -10,7 +10,7 @@ Switch it off with `HH_FEATURE_OUTPUT_GUARD=0`, or `"output-guard": false` in `~
 |---|---|
 | `cat`, `less`, `more` on a file over 500 lines | deny, with a `sed -n '1,200p'` suggestion |
 | `cat` on a missing, binary or glob path | allow |
-| `tail -f`, `-F`, `--follow` | deny (never returns) |
+| `tail -f`, `-F`, `--follow` | deny (never returns); allowed on Claude Code when the call has `run_in_background: true` |
 | `grep`, `rg`, `find` without `-c`, `-l`, `-q`, `--files`, `-exec`, `-delete` and similar | rewrite: ` \| head -n 200` appended |
 | `ls -R`, `ls --recursive` | rewrite: ` \| head -n 200` appended |
 | Piped or composed command whose first segment is `grep`, `rg` or `find` with no `head`, `tail`, `wc` anywhere | advise (context note only) |

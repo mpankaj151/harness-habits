@@ -101,3 +101,21 @@ def test_handler_exception_is_swallowed(work, payload):
     assert r.returncode == 0
     assert r.stdout == ""
     assert r.stderr.startswith("harness-habits:")
+
+
+def test_tail_follow_denied_in_foreground(work):
+    r = run(bash("tail -f app.log", work), work)
+    h = json.loads(r.stdout)["hookSpecificOutput"]
+    assert h["permissionDecision"] == "deny" and "never returns" in h["permissionDecisionReason"]
+
+
+def test_tail_follow_allowed_when_run_in_background(work):
+    r = run(bash("tail -f app.log", work, run_in_background=True), work)
+    assert r.returncode == 0 and r.stdout == ""
+
+
+def test_background_still_applies_other_rules(work):
+    r = run(bash("cat big.txt", work, run_in_background=True), work)
+    assert json.loads(r.stdout)["hookSpecificOutput"]["permissionDecision"] == "deny"
+    r = run(bash("grep -r foo .", work, run_in_background=True), work)
+    assert "updatedInput" in json.loads(r.stdout)["hookSpecificOutput"]

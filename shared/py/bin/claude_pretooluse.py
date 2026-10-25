@@ -24,7 +24,7 @@ def main():
     fs = guard.RealFS(cwd, rules["max_lines"])
     tin = data.get("tool_input") or {}
     if tool == "Bash":
-        d = guard.evaluate(tin.get("command", ""), cwd, fs, rules)
+        d = guard.evaluate(tin.get("command", ""), cwd, fs, rules, background=bool(tin.get("run_in_background")))
     else:
         d = guard.evaluate_read(tin.get("file_path", ""), tin.get("limit"), cwd, fs, rules)
     if d.action == "deny":
