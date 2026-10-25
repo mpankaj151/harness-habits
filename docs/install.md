@@ -21,6 +21,7 @@ Requirements: Python 3.11+. The installer uses only the standard library.
 
 - `--claude` runs `claude plugin marketplace add mpankaj151/harness-habits` and
   `claude plugin install harness-habits@harness-habits` (printed, then run unless `--dry-run`).
+- `--claude --uninstall` runs `claude plugin uninstall harness-habits@harness-habits`.
 - `--statusline` copies `statusline_wrap.py` and the `harness_habits` package to
   `~/.local/share/harness-habits/bin/`, records an existing `statusLine` object as `wrapped` in
   `~/.config/harness-habits/statusline.json`, and points `~/.claude/settings.json` at the wrapper.

@@ -1,10 +1,33 @@
 # Pre-compaction snapshot
 
-`PreCompact` cannot inject text into a compaction, so `PreCompact` and `SessionEnd` write a snapshot to
-`<data dir>/precompact/<session_id>.md` (`CLAUDE_PLUGIN_DATA` if set): last 5 user messages, last assistant message, latest
-TodoWrite list and edited files. `SessionStart` with source `compact` re-injects it (not on `resume`: the history is already restored). With `HH_STARTUP_HANDOFF=1`,
-a `startup` session also receives the newest snapshot for the same `cwd` younger than 7 days.
-Disable with feature `precompact-snapshot`.
+## Why
+
+A compaction replaces the conversation with a summary, and details such as your last requests, the todo list and the files you were editing can be lost. The snapshot keeps them on disk and puts them back, so you do not have to re-explain the work.
+
+## What you see
+
+- Claude Code restores; Codex only saves. The re-injected text is sent to the model as context, not shown on screen.
+- Claude Code: a file `<data dir>/precompact/<session_id>.md` (`CLAUDE_PLUGIN_DATA` if set) with the last 5 user messages, the last assistant message, the latest TodoWrite list and edited files. After a compaction Claude's context starts with `Snapshot taken before the last compaction of this session:` followed by that file.
+- With `HH_STARTUP_HANDOFF=1`, a new session in the same directory also receives `Snapshot from the most recent earlier session in this directory:` (newest snapshot younger than 7 days).
+- Codex: the note is written to `~/.codex/handoff/<session_id>.md` (override with `HH_CODEX_HANDOFF_DIR`).
+
+## Setup
+
+### Claude Code
+
+Included in the plugin install (`claude plugin marketplace add mpankaj151/harness-habits`, then `claude plugin install harness-habits@harness-habits`). Nothing else to do; to turn it off see below.
+
+### OpenCode
+
+Not applicable; OpenCode uses [handoff notes](handoff.md) instead.
+
+### Codex CLI
+
+`./install.sh --codex` (feature `precompact-snapshot`; trust the hooks via `/hooks`). Doc-verified only, see [codex.md](codex.md).
+
+## Switch it off
+
+Set `"precompact-snapshot": false` in `~/.config/harness-habits/features.json`, or export `HH_FEATURE_PRECOMPACT_SNAPSHOT=0` in the shell that launches the harness. On Claude Code `CLAUDE_PLUGIN_OPTION_PRECOMPACT_SNAPSHOT=0` works too.
 
 ## Just this one
 
@@ -89,3 +112,6 @@ Codex CLI: add to `~/.codex/hooks.json` (then trust it via `/hooks`):
 }
 ```
 
+## Details / Limits
+
+`PreCompact` cannot inject text into a compaction, so `PreCompact` and `SessionEnd` write a snapshot and `SessionStart` with source `compact` re-injects it (not on `resume`: the history is already restored). The `SessionStart` script is shared with size lint; see the note in "Just this one".

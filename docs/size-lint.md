@@ -1,34 +1,33 @@
 # Size lint
 
-At `SessionStart` (sources `startup` and `clear`) harness-habits reports instruction files over their guideline:
-`CLAUDE.md`, `.claude/CLAUDE.md`, `AGENTS.md` in the project and `~/.claude/CLAUDE.md` (over 200 lines), and the
-auto-memory `~/.claude/projects/<slug>/memory/MEMORY.md` (over 180 lines or 22528 bytes). `<slug>` is the project path with
-every non-alphanumeric character replaced by `-`. A `CLAUDE.md` over 200 lines with no `.claude/rules/` gets a note that
-path-scoped rules load only when matching files are touched.
+## Why
 
-On Codex only the files Codex reads are checked: `AGENTS.md` in the project and `~/.codex/AGENTS.md`
-(`lint_cli.py --harness codex`).
+Instruction files (`CLAUDE.md`, `AGENTS.md`) and the auto-memory file are loaded on every turn, so each extra line is paid for again and again. Size lint tells you at session start when one has grown past its guideline, before it quietly raises every request.
 
-Disable with feature `size-lint`. Run by hand: `python3 -I shared/py/bin/lint_cli.py [--strict] [--cwd PATH]`;
-the pre-commit hook id is `harness-habits-size-lint`.
+## What you see
 
-## pre-commit
+One line per file over its guideline (on Claude Code and Codex it is sent to the model as context, not shown on screen; on OpenCode it is added to the system prompt):
 
-Use a local hook with an absolute path to `lint_cli.py` (installed plugin path or a checkout):
+- Claude Code and Codex: `<path> has <n> lines (guideline 200 lines; <b> bytes).` For memory files the guideline reads `180 lines` or `22528 bytes`. A `CLAUDE.md` over 200 lines with no `.claude/rules/` adds `Note: ….`
+- OpenCode: `AGENTS.md has <n> lines (guideline 200). Long instruction files cost tokens on every turn.` (same wording for `CLAUDE.md` and `~/.config/opencode/AGENTS.md`).
 
-```yaml
-repos:
-  - repo: local
-    hooks:
-      - id: harness-habits-size-lint
-        name: harness-habits size lint
-        entry: python3 -I /absolute/path/to/harness-habits/shared/py/bin/lint_cli.py --strict
-        language: system
-        pass_filenames: false
-        always_run: true
-```
+## Setup
 
-A packaged remote pre-commit hook is future work.
+### Claude Code
+
+Included in the plugin install (`claude plugin marketplace add mpankaj151/harness-habits`, then `claude plugin install harness-habits@harness-habits`). Nothing else to do; to turn it off see below.
+
+### OpenCode
+
+`./install.sh --opencode` (feature `size-lint`).
+
+### Codex CLI
+
+`./install.sh --codex` (feature `size-lint`; trust the hooks via `/hooks`).
+
+## Switch it off
+
+Set `"size-lint": false` in `~/.config/harness-habits/features.json`, or export `HH_FEATURE_SIZE_LINT=0` in the shell that launches the harness. On Claude Code `CLAUDE_PLUGIN_OPTION_SIZE_LINT=0` works too.
 
 ## Just this one
 
@@ -81,3 +80,35 @@ Codex CLI: add to `~/.codex/hooks.json` (then trust it via `/hooks`):
 ```
 
 OpenCode: `cp opencode/dist/features/size-lint.js ~/.config/opencode/plugins/` (plugin id `harness-habits-size-lint`).
+
+## Details / Limits
+
+At `SessionStart` (sources `startup` and `clear`) harness-habits reports instruction files over their guideline:
+`CLAUDE.md`, `.claude/CLAUDE.md`, `AGENTS.md` in the project and `~/.claude/CLAUDE.md` (over 200 lines), and the
+auto-memory `~/.claude/projects/<slug>/memory/MEMORY.md` (over 180 lines or 22528 bytes). `<slug>` is the project path with
+every non-alphanumeric character replaced by `-`. A `CLAUDE.md` over 200 lines with no `.claude/rules/` gets a note that
+path-scoped rules load only when matching files are touched.
+
+On Codex only the files Codex reads are checked: `AGENTS.md` in the project and `~/.codex/AGENTS.md`
+(`lint_cli.py --harness codex`).
+
+Run by hand: `python3 -I shared/py/bin/lint_cli.py [--strict] [--cwd PATH]`;
+the pre-commit hook id is `harness-habits-size-lint`.
+
+### pre-commit
+
+Use a local hook with an absolute path to `lint_cli.py` (installed plugin path or a checkout):
+
+```yaml
+repos:
+  - repo: local
+    hooks:
+      - id: harness-habits-size-lint
+        name: harness-habits size lint
+        entry: python3 -I /absolute/path/to/harness-habits/shared/py/bin/lint_cli.py --strict
+        language: system
+        pass_filenames: false
+        always_run: true
+```
+
+A packaged remote pre-commit hook is future work.
