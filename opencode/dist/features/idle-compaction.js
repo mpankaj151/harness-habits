@@ -276,6 +276,10 @@ function merge(target, src) {
 function loadOptions(npmOptions, env = process.env) {
   const opts = defaultOptions();
   try {
+    merge(opts, { features: JSON.parse(readFileSync(join(configDir(env), "features.json"), "utf8")) });
+  } catch {
+  }
+  try {
     merge(opts, JSON.parse(readFileSync(join(configDir(env), "opencode.json"), "utf8")));
   } catch {
   }

@@ -51,7 +51,7 @@ def test_install_idempotent_and_uninstall(tmp_path):
     feats = json.loads((cfg / "features.json").read_text())
     assert feats["output-guard"] is True and feats["handoff"] is True and feats["size-lint"] is False
     assert len(feats) == 8
-    assert json.loads((cfg / "opencode.json").read_text())["features"]["handoff"] is True
+    assert not (cfg / "opencode.json").exists()  # features live only in features.json, which the plugin reads
     assert (home / ".config/opencode/plugins/harness-habits.js").read_bytes() == (ROOT / "opencode/dist/harness-habits.js").read_bytes()
     baks = list(home.rglob("*.bak.*"))
     assert len(baks) == 1  # only settings.json changed from a pre-existing file

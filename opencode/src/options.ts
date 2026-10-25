@@ -87,6 +87,12 @@ export function loadOptions(
 ): Options {
   const opts = defaultOptions();
   try {
+    // the flat key -> bool file written by `install.py --features`, shared with the Claude and Codex hooks
+    merge(opts, { features: JSON.parse(readFileSync(join(configDir(env), "features.json"), "utf8")) });
+  } catch {
+    // missing or invalid file: defaults
+  }
+  try {
     merge(opts, JSON.parse(readFileSync(join(configDir(env), "opencode.json"), "utf8")));
   } catch {
     // missing or invalid file: defaults

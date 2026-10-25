@@ -34,6 +34,23 @@ test("file < npm options < env", () => {
   assert.equal(o.compaction.cooldownMs, 60000);
 });
 
+test("features.json is read; opencode.json, npm options and env override it", () => {
+  const e = env({ features: { "cache-break": true } });
+  writeFileSync(join(e.XDG_CONFIG_HOME, "harness-habits", "features.json"), JSON.stringify({ handoff: false, "cache-break": false, "size-lint": false }));
+  const o = loadOptions({ features: { "size-lint": true } }, e);
+  assert.equal(o.features.handoff, false);
+  assert.equal(o.features["cache-break"], true); // opencode.json wins over features.json
+  assert.equal(o.features["size-lint"], true); // npm options win
+  const o2 = loadOptions(undefined, { ...e, HH_FEATURE_HANDOFF: "1" });
+  assert.equal(o2.features.handoff, true); // env wins
+});
+
+test("features.json alone disables handoff", () => {
+  const e = env({});
+  writeFileSync(join(e.XDG_CONFIG_HOME, "harness-habits", "features.json"), JSON.stringify({ handoff: false }));
+  assert.equal(loadOptions(undefined, e).features.handoff, false);
+});
+
 test("env off values and bad file", () => {
   const o = loadOptions(undefined, env(undefined, { HH_FEATURE_OUTPUT_GUARD: "false", HH_FEATURE_COST_LOGGER: "0" }));
   assert.equal(o.features["output-guard"], false);

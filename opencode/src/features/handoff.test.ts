@@ -123,7 +123,7 @@ function oldNote(dir: string, name: string, ageDays: number) {
   return p;
 }
 
-test("system transform: newest fresh note once per session; age cutoff", async () => {
+test("system transform: newest fresh note, the same text on every call; age cutoff", async () => {
   const s = setup({ sessions: { n1: { id: "n1" }, n2: { id: "n2" } } });
   oldNote(s.dir, "x-stale.md", 30);
   const p = oldNote(s.dir, "x-fresh.md", 1);
@@ -135,9 +135,15 @@ test("system transform: newest fresh note once per session; age cutoff", async (
     out1.system[0],
     `A handoff note from a previous session in this project exists at ${p}. It lists recent messages, open todos and edited files.`,
   );
-  const again = { system: [] as string[] };
-  await s.hooks["experimental.chat.system.transform"]({ sessionID: "n1", model: {} }, again);
-  assert.equal(again.system.length, 0);
+  for (let i = 0; i < 3; i++) {
+    const again = { system: [] as string[] };
+    await s.hooks["experimental.chat.system.transform"]({ sessionID: "n1", model: {} }, again);
+    assert.deepEqual(again.system, out1.system);
+  }
+  oldNote(s.dir, "x-newer-later.md", 0); // a note appearing mid-session does not change the prefix
+  const later = { system: [] as string[] };
+  await s.hooks["experimental.chat.system.transform"]({ sessionID: "n1", model: {} }, later);
+  assert.deepEqual(later.system, out1.system);
   const other = { system: [] as string[] };
   await s.hooks["experimental.chat.system.transform"]({ sessionID: "n2", model: {} }, other);
   assert.equal(other.system.length, 1);

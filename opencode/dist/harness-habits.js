@@ -110,6 +110,10 @@ function merge(target, src) {
 function loadOptions(npmOptions, env = process.env) {
   const opts = defaultOptions();
   try {
+    merge(opts, { features: JSON.parse(readFileSync(join(configDir(env), "features.json"), "utf8")) });
+  } catch {
+  }
+  try {
     merge(opts, JSON.parse(readFileSync(join(configDir(env), "opencode.json"), "utf8")));
   } catch {
   }
@@ -300,7 +304,7 @@ function createHandoff(opts = {}) {
     const snapshots = /* @__PURE__ */ new Map();
     const hashes = /* @__PURE__ */ new Map();
     const notes = /* @__PURE__ */ new Map();
-    const injected = /* @__PURE__ */ new Set();
+    const notices = /* @__PURE__ */ new Map();
     let active;
     let excludeDone = false;
     const filesFor = (id) => {
@@ -401,14 +405,23 @@ function createHandoff(opts = {}) {
       },
       "experimental.chat.system.transform": async (input, output) => {
         const id = input?.sessionID;
-        if (!id || injected.has(id) || hashes.has(id)) return;
-        injected.add(id);
-        if (await idle.parents.isSubagent(id)) return;
-        const path = newestFreshNote();
-        if (!path) return;
-        output.system.push(
-          `A handoff note from a previous session in this project exists at ${path}. It lists recent messages, open todos and edited files.`
-        );
+        if (!id) return;
+        let p = notices.get(id);
+        if (!p) {
+          notices.set(
+            id,
+            (async () => {
+              if (hashes.has(id) || await idle.parents.isSubagent(id)) return [];
+              const path = newestFreshNote();
+              if (!path) return [];
+              return [
+                `A handoff note from a previous session in this project exists at ${path}. It lists recent messages, open todos and edited files.`
+              ];
+            })()
+          );
+          p = notices.get(id);
+        }
+        output.system.push(...await p);
       },
       "experimental.session.compacting": async (input, output) => {
         const note = notes.get(input?.sessionID);
@@ -823,24 +836,30 @@ function createSizeLint(opts = {}) {
     const worktree = ctx.input?.worktree || ctx.directory;
     const globalDir = opts.globalDir ?? join5(homedir3(), ".config", "opencode");
     const parents = createParentCache(ctx.client);
-    const done = /* @__PURE__ */ new Set();
+    const lines2 = /* @__PURE__ */ new Map();
+    async function compute(id) {
+      if (await parents.isSubagent(id)) return [];
+      const found = [];
+      const targets = [
+        ["AGENTS.md", join5(worktree, "AGENTS.md")],
+        ["CLAUDE.md", join5(worktree, "CLAUDE.md")],
+        ["~/.config/opencode/AGENTS.md", join5(globalDir, "AGENTS.md")]
+      ];
+      for (const [label, path] of targets) {
+        const n = lineCount(path);
+        if (n !== void 0 && n > LIMIT) {
+          found.push(`${label} has ${n} lines (guideline ${LIMIT}). Long instruction files cost tokens on every turn.`);
+        }
+      }
+      return found;
+    }
     return {
       "experimental.chat.system.transform": async (input, output) => {
         const id = input?.sessionID;
-        if (!id || done.has(id)) return;
-        done.add(id);
-        if (await parents.isSubagent(id)) return;
-        const targets = [
-          ["AGENTS.md", join5(worktree, "AGENTS.md")],
-          ["CLAUDE.md", join5(worktree, "CLAUDE.md")],
-          ["~/.config/opencode/AGENTS.md", join5(globalDir, "AGENTS.md")]
-        ];
-        for (const [label, path] of targets) {
-          const n = lineCount(path);
-          if (n !== void 0 && n > LIMIT) {
-            output.system.push(`${label} has ${n} lines (guideline ${LIMIT}). Long instruction files cost tokens on every turn.`);
-          }
-        }
+        if (!id) return;
+        let p = lines2.get(id);
+        if (!p) lines2.set(id, p = compute(id));
+        output.system.push(...await p);
       }
     };
   };

@@ -27,10 +27,13 @@ Requirements: Python 3.11+. The installer uses only the standard library.
   `--uninstall` restores the recorded object. Segments (`cost`, `ctx`, `model`) are configurable in
   `statusline.json`: `{"segments":["cost","ctx"]}`.
 - `--opencode` writes `~/.config/opencode/plugins/harness-habits.js` (skipped with a warning when
-  another file declares the same plugin id) and `~/.config/harness-habits/opencode.json` if absent.
-- `--features` writes `~/.config/harness-habits/features.json`.
-- `--codex` merges `codex/hooks.json` into `~/.codex/hooks.json`, copies the `handoff-note` skill to
-  `~/.agents/skills/`, and prints the `config.toml` snippet. It never writes TOML.
+  another file declares the same plugin id). The plugin reads `~/.config/harness-habits/features.json`;
+  `opencode.json` in the same folder is optional and holds tuning options.
+- `--features` adds the chosen keys to `~/.config/harness-habits/features.json` (merged; other keys are kept).
+- `--codex` copies the `codex_*.py` scripts, the `harness_habits` package and `rules/` to
+  `~/.local/share/harness-habits/bin/`, merges `codex/hooks.json` into `~/.codex/hooks.json` (pointing at those
+  installed copies), copies the `handoff-note` skill to `~/.agents/skills/`, and prints the `config.toml`
+  snippet. It never writes TOML. `--codex --uninstall` removes them again.
 
 Edits to JSON files are atomic and leave a `<file>.bak.<epoch>` backup only when content changes,
 so re-running the installer changes nothing.

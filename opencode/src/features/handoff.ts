@@ -88,7 +88,9 @@ export function createHandoff(opts: { deps?: IdleDeps } = {}): Feature {
     const snapshots = new Map<string, Snapshot>();
     const hashes = new Map<string, string>();
     const notes = new Map<string, string>();
-    const injected = new Set<string>();
+    // Computed once per session and pushed on every transform call (the title-generation request fires first
+    // with the same sessionID), so the prompt prefix does not change between requests.
+    const notices = new Map<string, Promise<string[]>>();
     let active: string | undefined;
     let excludeDone = false;
 
@@ -196,14 +198,23 @@ export function createHandoff(opts: { deps?: IdleDeps } = {}): Feature {
       },
       "experimental.chat.system.transform": async (input, output) => {
         const id = input?.sessionID;
-        if (!id || injected.has(id) || hashes.has(id)) return;
-        injected.add(id);
-        if (await idle.parents.isSubagent(id)) return;
-        const path = newestFreshNote();
-        if (!path) return;
-        output.system.push(
-          `A handoff note from a previous session in this project exists at ${path}. It lists recent messages, open todos and edited files.`,
-        );
+        if (!id) return;
+        let p = notices.get(id);
+        if (!p) {
+          notices.set(
+            id,
+            (async () => {
+              if (hashes.has(id) || (await idle.parents.isSubagent(id))) return [];
+              const path = newestFreshNote();
+              if (!path) return [];
+              return [
+                `A handoff note from a previous session in this project exists at ${path}. It lists recent messages, open todos and edited files.`,
+              ];
+            })(),
+          );
+          p = notices.get(id)!;
+        }
+        output.system.push(...(await p));
       },
       "experimental.session.compacting": async (input, output) => {
         const note = notes.get(input?.sessionID);

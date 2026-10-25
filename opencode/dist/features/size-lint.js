@@ -50,24 +50,30 @@ function createSizeLint(opts = {}) {
     const worktree = ctx.input?.worktree || ctx.directory;
     const globalDir = opts.globalDir ?? join(homedir(), ".config", "opencode");
     const parents = createParentCache(ctx.client);
-    const done = /* @__PURE__ */ new Set();
+    const lines = /* @__PURE__ */ new Map();
+    async function compute(id) {
+      if (await parents.isSubagent(id)) return [];
+      const found = [];
+      const targets = [
+        ["AGENTS.md", join(worktree, "AGENTS.md")],
+        ["CLAUDE.md", join(worktree, "CLAUDE.md")],
+        ["~/.config/opencode/AGENTS.md", join(globalDir, "AGENTS.md")]
+      ];
+      for (const [label, path] of targets) {
+        const n = lineCount(path);
+        if (n !== void 0 && n > LIMIT) {
+          found.push(`${label} has ${n} lines (guideline ${LIMIT}). Long instruction files cost tokens on every turn.`);
+        }
+      }
+      return found;
+    }
     return {
       "experimental.chat.system.transform": async (input, output) => {
         const id = input?.sessionID;
-        if (!id || done.has(id)) return;
-        done.add(id);
-        if (await parents.isSubagent(id)) return;
-        const targets = [
-          ["AGENTS.md", join(worktree, "AGENTS.md")],
-          ["CLAUDE.md", join(worktree, "CLAUDE.md")],
-          ["~/.config/opencode/AGENTS.md", join(globalDir, "AGENTS.md")]
-        ];
-        for (const [label, path] of targets) {
-          const n = lineCount(path);
-          if (n !== void 0 && n > LIMIT) {
-            output.system.push(`${label} has ${n} lines (guideline ${LIMIT}). Long instruction files cost tokens on every turn.`);
-          }
-        }
+        if (!id) return;
+        let p = lines.get(id);
+        if (!p) lines.set(id, p = compute(id));
+        output.system.push(...await p);
       }
     };
   };
@@ -172,6 +178,10 @@ function merge(target, src) {
 }
 function loadOptions(npmOptions, env = process.env) {
   const opts = defaultOptions();
+  try {
+    merge(opts, { features: JSON.parse(readFileSync2(join2(configDir(env), "features.json"), "utf8")) });
+  } catch {
+  }
   try {
     merge(opts, JSON.parse(readFileSync2(join2(configDir(env), "opencode.json"), "utf8")));
   } catch {

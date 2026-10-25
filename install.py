@@ -200,11 +200,7 @@ def do_opencode(ctx: Ctx, feats: dict | None, uninstall: bool) -> None:
             ctx.say(f"warning: {target} is a different file; skip opencode install")
             return
     ctx.copy_file(OPENCODE_DIST, target)
-    oc = ctx.config / "opencode.json"
-    if oc.exists():
-        ctx.say(f"unchanged {oc} (exists)")
-    else:
-        ctx.merge(oc, lambda d: {"features": dict(feats or DEFAULTS)}, "opencode options")
+    # features come from <config dir>/features.json (read by the plugin); opencode.json is left to the user
 
 
 # --- codex ------------------------------------------------------------------------------

@@ -27,14 +27,15 @@ function setup(files: Record<string, number>, globalLines?: number) {
   return { run, state };
 }
 
-test("reports files over 200 lines, once per session", async () => {
+test("reports files over 200 lines, the same lines on every call for a session", async () => {
   const s = setup({ "AGENTS.md": 312, "CLAUDE.md": 200 }, 201);
   const out = await s.run("s1");
   assert.deepEqual(out, [
     "AGENTS.md has 312 lines (guideline 200). Long instruction files cost tokens on every turn.",
     "~/.config/opencode/AGENTS.md has 201 lines (guideline 200). Long instruction files cost tokens on every turn.",
   ]);
-  assert.deepEqual(await s.run("s1"), []);
+  assert.deepEqual(await s.run("s1"), out);
+  assert.deepEqual(await s.run("s1"), out);
 });
 
 test("silent when all files are small or missing", async () => {

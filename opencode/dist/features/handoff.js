@@ -157,7 +157,7 @@ function createHandoff(opts = {}) {
     const snapshots = /* @__PURE__ */ new Map();
     const hashes = /* @__PURE__ */ new Map();
     const notes = /* @__PURE__ */ new Map();
-    const injected = /* @__PURE__ */ new Set();
+    const notices = /* @__PURE__ */ new Map();
     let active;
     let excludeDone = false;
     const filesFor = (id) => {
@@ -258,14 +258,23 @@ function createHandoff(opts = {}) {
       },
       "experimental.chat.system.transform": async (input, output) => {
         const id = input?.sessionID;
-        if (!id || injected.has(id) || hashes.has(id)) return;
-        injected.add(id);
-        if (await idle.parents.isSubagent(id)) return;
-        const path = newestFreshNote();
-        if (!path) return;
-        output.system.push(
-          `A handoff note from a previous session in this project exists at ${path}. It lists recent messages, open todos and edited files.`
-        );
+        if (!id) return;
+        let p = notices.get(id);
+        if (!p) {
+          notices.set(
+            id,
+            (async () => {
+              if (hashes.has(id) || await idle.parents.isSubagent(id)) return [];
+              const path = newestFreshNote();
+              if (!path) return [];
+              return [
+                `A handoff note from a previous session in this project exists at ${path}. It lists recent messages, open todos and edited files.`
+              ];
+            })()
+          );
+          p = notices.get(id);
+        }
+        output.system.push(...await p);
       },
       "experimental.session.compacting": async (input, output) => {
         const note = notes.get(input?.sessionID);
@@ -374,6 +383,10 @@ function merge(target, src) {
 }
 function loadOptions(npmOptions, env = process.env) {
   const opts = defaultOptions();
+  try {
+    merge(opts, { features: JSON.parse(readFileSync2(join2(configDir(env), "features.json"), "utf8")) });
+  } catch {
+  }
   try {
     merge(opts, JSON.parse(readFileSync2(join2(configDir(env), "opencode.json"), "utf8")));
   } catch {
