@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- docs: README rewritten as a feature inventory with per-harness quick start and verification checks; feature docs normalised to one template.
+
 ## 0.1.0
 
 First release.
@@ -13,7 +17,3 @@ First release.
 - Installer: `install.sh` with `--claude`, `--claude-dev`, `--statusline`, `--opencode`, `--codex`, `--report-cron`, `--features`, `--uninstall`, `--dry-run`. JSON edits go through symlinks, keep file modes and never overwrite a backup.
 - Verification: PreToolUse guard exercised live on Claude Code (`tests/smoke/claude.sh`); OpenCode smoke against a local Ollama model (`tests/smoke/opencode.sh`).
 - Known issues (v0.1.0): see [KNOWN-ISSUES.md](KNOWN-ISSUES.md).
-
-### Release steps (maintainer)
-
-Not done by the build: create the GitHub repo, push `main`, tag `v0.1.0`, optionally `npm publish` the OpenCode package.
