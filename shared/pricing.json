@@ -1,0 +1,7 @@
+{
+  "_note": "Placeholder estimates in USD per million tokens, NOT vendor prices. Edit these to match your plan; the report labels every figure derived from them as estimated. Keys are model-id prefixes (longest match wins); 'default' covers unknown models.",
+  "claude-opus": {"input": 15.0, "output": 75.0, "cache_read": 1.5, "cache_write": 18.75},
+  "claude-sonnet": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75},
+  "claude-haiku": {"input": 1.0, "output": 5.0, "cache_read": 0.1, "cache_write": 1.25},
+  "default": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75}
+}

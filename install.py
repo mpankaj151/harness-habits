@@ -76,6 +76,9 @@ def install_runtime(ctx: Ctx, only: str | None = None) -> Path:
     for script in sorted((ROOT / "shared" / "py" / "bin").glob(only or "*.py")):
         ctx.copy_file(script, bindir / script.name)
     ctx.copy_tree(ROOT / "shared" / "py" / "harness_habits", bindir / "harness_habits")
+    pricing = ROOT / "shared" / "pricing.json"
+    if only is None and pricing.exists() and not (ctx.data / "pricing.json").exists():
+        ctx.copy_file(pricing, ctx.data / "pricing.json")  # seeded once; the user's edits are never overwritten
     return bindir
 
 

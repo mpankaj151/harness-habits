@@ -22,45 +22,52 @@ def _blocks(content):
     return [b for b in content if isinstance(b, dict)] if isinstance(content, list) else []
 
 
-def extract(path: Path) -> Snapshot:
-    snap = Snapshot()
-    seen = set()
+def iter_entries(path: Path):
+    """Yield each JSON-object line of a transcript; unreadable files and malformed lines are skipped."""
     try:
         fh = open(path, encoding="utf-8", errors="replace")
     except OSError:
-        return snap
+        return
     with fh:
         for raw in fh:
             try:
                 d = json.loads(raw)
             except ValueError:
                 continue
-            if not isinstance(d, dict) or d.get("isSidechain"):
+            if isinstance(d, dict):
+                yield d
+
+
+def extract(path: Path) -> Snapshot:
+    snap = Snapshot()
+    seen = set()
+    for d in iter_entries(path):
+        if d.get("isSidechain"):
+            continue
+        kind, msg = d.get("type"), d.get("message")
+        if kind not in ("user", "assistant") or not isinstance(msg, dict):
+            continue
+        blocks = _blocks(msg.get("content"))
+        if kind == "user":
+            text = "\n".join(b.get("text", "") for b in blocks if b.get("type") == "text" and isinstance(b.get("text"), str)).strip()
+            if text and not d.get("isMeta"):
+                snap.user_messages.append(text)
+                del snap.user_messages[:-MAX_USER]
+            continue
+        texts = [b["text"] for b in blocks if b.get("type") == "text" and isinstance(b.get("text"), str) and b["text"].strip()]
+        if texts:
+            snap.last_assistant_text = "\n".join(texts).strip()
+        for b in blocks:
+            if b.get("type") != "tool_use" or not isinstance(b.get("input"), dict):
                 continue
-            kind, msg = d.get("type"), d.get("message")
-            if kind not in ("user", "assistant") or not isinstance(msg, dict):
-                continue
-            blocks = _blocks(msg.get("content"))
-            if kind == "user":
-                text = "\n".join(b.get("text", "") for b in blocks if b.get("type") == "text" and isinstance(b.get("text"), str)).strip()
-                if text and not d.get("isMeta"):
-                    snap.user_messages.append(text)
-                    del snap.user_messages[:-MAX_USER]
-                continue
-            texts = [b["text"] for b in blocks if b.get("type") == "text" and isinstance(b.get("text"), str) and b["text"].strip()]
-            if texts:
-                snap.last_assistant_text = "\n".join(texts).strip()
-            for b in blocks:
-                if b.get("type") != "tool_use" or not isinstance(b.get("input"), dict):
-                    continue
-                name, tin = b.get("name"), b["input"]
-                if name == "TodoWrite" and isinstance(tin.get("todos"), list):
-                    snap.todos = [t for t in tin["todos"] if isinstance(t, dict)]
-                elif name in EDIT_TOOLS:
-                    fp = tin.get("file_path") or tin.get("notebook_path")
-                    if isinstance(fp, str) and fp not in seen:
-                        seen.add(fp)
-                        snap.edited_files.append(fp)
+            name, tin = b.get("name"), b["input"]
+            if name == "TodoWrite" and isinstance(tin.get("todos"), list):
+                snap.todos = [t for t in tin["todos"] if isinstance(t, dict)]
+            elif name in EDIT_TOOLS:
+                fp = tin.get("file_path") or tin.get("notebook_path")
+                if isinstance(fp, str) and fp not in seen:
+                    seen.add(fp)
+                    snap.edited_files.append(fp)
     return snap
 
 
