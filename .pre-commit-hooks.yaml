@@ -1,0 +1,7 @@
+- id: harness-habits-size-lint
+  name: harness-habits size lint
+  description: Report oversized CLAUDE.md, AGENTS.md and auto-memory files
+  entry: python3 -I shared/py/bin/lint_cli.py --strict
+  language: system
+  pass_filenames: false
+  always_run: true
