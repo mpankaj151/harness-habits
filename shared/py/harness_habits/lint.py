@@ -32,8 +32,20 @@ def _stat(path: Path):
     return data.count(b"\n") + (1 if data and not data.endswith(b"\n") else 0), len(data)
 
 
-def lint(cwd: Path, home: Path) -> list:
+def _lint_codex(cwd: Path, home: Path) -> list:
+    """Codex reads AGENTS.md only: the project file and ~/.codex/AGENTS.md."""
+    findings = []
+    for p in (cwd / "AGENTS.md", home / ".codex" / "AGENTS.md"):
+        st = _stat(p)
+        if st and st[0] > LINE_LIMIT:
+            findings.append(Finding(p, st[0], st[1], f"{LINE_LIMIT} lines"))
+    return findings
+
+
+def lint(cwd: Path, home: Path, harness: str = "claude") -> list:
     cwd, home = Path(cwd), Path(home)
+    if harness == "codex":
+        return _lint_codex(cwd, home)
     findings = []
     rules_missing = not (cwd / ".claude" / "rules").is_dir()
     for p in (cwd / "CLAUDE.md", cwd / ".claude" / "CLAUDE.md", cwd / "AGENTS.md", home / ".claude" / "CLAUDE.md"):

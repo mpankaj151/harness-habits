@@ -77,7 +77,13 @@ def test_sessionstart_clean_is_silent(tmp_path):
     assert (r.returncode, r.stdout) == (0, "")
 
 
-@pytest.mark.parametrize("source", ["compact", "resume"])
+def test_sessionstart_resume_does_not_reinject(tmp_path):
+    run("claude_precompact.py", {"session_id": "s-1", "transcript_path": str(FIX), "cwd": "/proj"}, tmp_path)
+    r = run("claude_sessionstart.py", {"source": "resume", "session_id": "s-1", "cwd": "/proj"}, tmp_path)
+    assert (r.returncode, r.stdout) == (0, "")  # history is already restored on resume
+
+
+@pytest.mark.parametrize("source", ["compact"])
 def test_sessionstart_reinjects_snapshot(source, tmp_path):
     run("claude_precompact.py", {"session_id": "s-1", "transcript_path": str(FIX), "cwd": "/proj"}, tmp_path)
     r = run("claude_sessionstart.py", {"source": source, "session_id": "s-1", "cwd": "/proj"}, tmp_path)

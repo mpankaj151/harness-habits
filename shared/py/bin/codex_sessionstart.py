@@ -15,7 +15,7 @@ def main():
     data = hookio.read_json_stdin()
     if data.get("source") not in (None, "startup", "clear") or not features.enabled("size-lint"):
         return
-    text = lint.format(lint.lint(Path(data.get("cwd") or os.getcwd()), Path.home()))
+    text = lint.format(lint.lint(Path(data.get("cwd") or os.getcwd()), Path.home(), harness="codex"))
     if text:
         sys.stdout.write(text)
 

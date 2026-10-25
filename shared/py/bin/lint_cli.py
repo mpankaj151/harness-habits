@@ -13,9 +13,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--strict", action="store_true")
     ap.add_argument("--cwd", default=os.getcwd())
+    ap.add_argument("--harness", choices=("claude", "codex"), default="claude")
     ap.add_argument("files", nargs="*")
     args = ap.parse_args()
-    findings = lint.lint(Path(args.cwd), Path.home())
+    findings = lint.lint(Path(args.cwd), Path.home(), args.harness)
     text = lint.format(findings)
     if text:
         print(text)

@@ -89,7 +89,13 @@ def test_sessionstart_plain_stdout(tmp_path):
     r = run("codex_sessionstart.py", {"cwd": str(proj), "source": "startup"}, tmp_path)
     assert r.returncode == 0
     assert not r.stdout.lstrip().startswith("{")
-    assert "CLAUDE.md has 201 lines (guideline 200 lines;" in r.stdout
+    assert "CLAUDE.md" not in r.stdout and r.stdout == ""  # Codex does not read CLAUDE.md
+    (proj / "AGENTS.md").write_text("x\n" * 205)
+    (tmp_path / "home" / ".codex").mkdir(parents=True)
+    (tmp_path / "home" / ".codex" / "AGENTS.md").write_text("x\n" * 210)
+    r = run("codex_sessionstart.py", {"cwd": str(proj), "source": "startup"}, tmp_path)
+    assert f"{proj}/AGENTS.md has 205 lines (guideline 200 lines;" in r.stdout
+    assert ".codex/AGENTS.md has 210 lines" in r.stdout and "CLAUDE.md" not in r.stdout
     off = run("codex_sessionstart.py", {"cwd": str(proj), "source": "startup"}, tmp_path, {"HH_FEATURE_SIZE_LINT": "0"})
     assert off.stdout == ""
 

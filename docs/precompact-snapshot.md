@@ -2,7 +2,7 @@
 
 `PreCompact` cannot inject text into a compaction, so `PreCompact` and `SessionEnd` write a snapshot to
 `<data dir>/precompact/<session_id>.md` (`CLAUDE_PLUGIN_DATA` if set): last 5 user messages, last assistant message, latest
-TodoWrite list and edited files. `SessionStart` with source `compact` or `resume` re-injects it. With `HH_STARTUP_HANDOFF=1`,
+TodoWrite list and edited files. `SessionStart` with source `compact` re-injects it (not on `resume`: the history is already restored). With `HH_STARTUP_HANDOFF=1`,
 a `startup` session also receives the newest snapshot for the same `cwd` younger than 7 days.
 Disable with feature `precompact-snapshot`.
 
@@ -50,7 +50,7 @@ Claude Code: add the three hooks to `~/.claude/settings.json` with an absolute p
 }
 ```
 
-The `SessionStart` script `claude_sessionstart.py` serves both `size-lint` (startup and clear) and `precompact-snapshot` (compact and resume re-injection), and both are on by default, so this snippet enables size lint too. To keep only precompact-snapshot, write `~/.config/harness-habits/features.json` with the other key off:
+The `SessionStart` script `claude_sessionstart.py` serves both `size-lint` (startup and clear) and `precompact-snapshot` (compact re-injection), and both are on by default, so this snippet enables size lint too. To keep only precompact-snapshot, write `~/.config/harness-habits/features.json` with the other key off:
 
 ```json
 {"size-lint": false}

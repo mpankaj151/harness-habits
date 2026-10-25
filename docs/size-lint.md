@@ -6,6 +6,9 @@ auto-memory `~/.claude/projects/<slug>/memory/MEMORY.md` (over 180 lines or 2252
 every non-alphanumeric character replaced by `-`. A `CLAUDE.md` over 200 lines with no `.claude/rules/` gets a note that
 path-scoped rules load only when matching files are touched.
 
+On Codex only the files Codex reads are checked: `AGENTS.md` in the project and `~/.codex/AGENTS.md`
+(`lint_cli.py --harness codex`).
+
 Disable with feature `size-lint`. Run by hand: `python3 -I shared/py/bin/lint_cli.py [--strict] [--cwd PATH]`;
 the pre-commit hook id is `harness-habits-size-lint`.
 
@@ -49,7 +52,7 @@ Claude Code: add the `SessionStart` hook to `~/.claude/settings.json` with an ab
 }
 ```
 
-The `SessionStart` script `claude_sessionstart.py` serves both `size-lint` (startup and clear) and `precompact-snapshot` (compact and resume re-injection), and both are on by default, so this snippet enables snapshot re-injection too. To keep only size-lint, write `~/.config/harness-habits/features.json` with the other key off:
+The `SessionStart` script `claude_sessionstart.py` serves both `size-lint` (startup and clear) and `precompact-snapshot` (compact re-injection), and both are on by default, so this snippet enables snapshot re-injection too. To keep only size-lint, write `~/.config/harness-habits/features.json` with the other key off:
 
 ```json
 {"precompact-snapshot": false}

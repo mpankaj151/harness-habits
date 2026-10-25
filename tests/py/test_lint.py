@@ -63,3 +63,18 @@ def test_format(tmp_path):
     assert out.count("\n") == 0
     assert "AGENTS.md has 300 lines (guideline 200 lines; 600 bytes)" in out
     assert lint.format([]) == ""
+
+
+def test_codex_checks_only_agents_files(tmp_path):
+    cwd, home = tmp_path / "p", tmp_path / "h"
+    mk(cwd / "CLAUDE.md", 300)
+    mk(cwd / ".claude" / "CLAUDE.md", 300)
+    mk(home / ".claude" / "CLAUDE.md", 300)
+    mk(home / ".claude" / "projects" / lint.slug(cwd) / "memory" / "MEMORY.md", 300)
+    assert lint.lint(cwd, home, harness="codex") == []
+    mk(cwd / "AGENTS.md", 201)
+    mk(home / ".codex" / "AGENTS.md", 201)
+    found = lint.lint(cwd, home, harness="codex")
+    assert [f.path for f in found] == [cwd / "AGENTS.md", home / ".codex" / "AGENTS.md"]
+    assert all(f.note == "" for f in found)
+    assert len(lint.lint(cwd, home)) >= 3  # claude default unchanged

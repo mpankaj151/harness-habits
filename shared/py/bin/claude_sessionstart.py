@@ -36,7 +36,7 @@ def main():
         text = lint.format(lint.lint(Path(cwd), Path.home()))
         if text:
             parts.append(text)
-    if source in ("compact", "resume") and features.enabled("precompact-snapshot"):
+    if source == "compact" and features.enabled("precompact-snapshot"):
         sid = os.path.basename(str(data.get("session_id") or ""))
         p = snap_dir / f"{sid}.md"
         if sid and p.is_file():
