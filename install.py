@@ -203,15 +203,42 @@ def do_opencode(ctx: Ctx, feats: dict | None, uninstall: bool) -> None:
 
 # --- codex ------------------------------------------------------------------------------
 
+def codex_entries(hooks_src: Path) -> dict:
+    return json.loads(hooks_src.read_text().replace("$HH_ROOT", str(ROOT)))
+
+
+def is_our_codex_entry(entry, commands: set) -> bool:
+    inner = entry.get("hooks", []) if isinstance(entry, dict) else []
+    return any(isinstance(h, dict) and (h.get("command") in commands or "/shared/py/bin/codex_" in str(h.get("command", "")) and str(ROOT) in str(h.get("command", ""))) for h in inner)
+
+
+def effective_features(ctx: Ctx, feats: dict | None) -> dict:
+    if feats is not None:
+        return feats
+    result = dict(DEFAULTS)
+    try:
+        saved = json.loads((ctx.config / "features.json").read_text())
+        if isinstance(saved, dict):
+            result.update({k: bool(v) for k, v in saved.items() if k in DEFAULTS})
+    except (OSError, ValueError):
+        pass
+    return result
+
+
 def do_codex(ctx: Ctx, feats: dict, uninstall: bool) -> None:
     src = ROOT / "codex"
     hooks_dst = ctx.home / ".codex" / "hooks.json"
     skill_dst = ctx.home / ".agents" / "skills" / "handoff-note"
     if uninstall:
+        commands = set()
+        if (src / "hooks.json").exists():
+            for items in codex_entries(src / "hooks.json").get("hooks", {}).values():
+                commands |= {h.get("command") for e in items for h in e.get("hooks", [])}
+
         def strip(d: dict) -> dict:
             hooks = d.get("hooks", {})
             for event in list(hooks):
-                hooks[event] = [e for e in hooks[event] if "harness-habits" not in json.dumps(e)]
+                hooks[event] = [e for e in hooks[event] if not is_our_codex_entry(e, commands)]
                 if not hooks[event]:
                     del hooks[event]
             return d
@@ -224,18 +251,20 @@ def do_codex(ctx: Ctx, feats: dict, uninstall: bool) -> None:
     if not hooks_src.exists():
         ctx.say("notice: codex files (codex/hooks.json, codex/skills/, codex/config.toml.snippet) are not in this checkout yet; skipping codex")
         return
-    entries = json.loads(hooks_src.read_text().replace("$HH_ROOT", str(ROOT)))
+    entries = codex_entries(hooks_src)
 
     def add(d: dict) -> dict:
         hooks = d.setdefault("hooks", {})
         for event, items in entries.get("hooks", {}).items():
-            have = hooks.setdefault(event, [])
+            have = hooks.get(event, [])
             for item in items:
-                feature = item.pop("feature", None) if isinstance(item, dict) else None
+                item = dict(item)
+                feature = item.pop("feature", None)
                 if feature is not None and not feats.get(feature, False):
                     continue
                 if item not in have:
                     have.append(item)
+                    hooks[event] = have
         return d
 
     ctx.merge(hooks_dst, add, "codex hooks")
@@ -320,7 +349,6 @@ def main(argv=None) -> None:
         do_claude_dev(ctx)
     if feats is not None and not a.uninstall:
         do_features(ctx, feats)
-    effective = feats or dict(DEFAULTS)
     if sel["claude"]:
         do_claude(ctx, a.uninstall)
     if sel["statusline"]:
@@ -328,7 +356,7 @@ def main(argv=None) -> None:
     if sel["opencode"]:
         do_opencode(ctx, feats, a.uninstall)
     if sel["codex"]:
-        do_codex(ctx, effective, a.uninstall)
+        do_codex(ctx, effective_features(ctx, feats), a.uninstall)
     if sel["report-cron"]:
         do_report_cron(ctx, a.uninstall)
 

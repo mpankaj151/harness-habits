@@ -93,13 +93,6 @@ def test_claude_dry_run_prints_commands(tmp_path):
     assert f"claude --plugin-dir {ROOT}" in out
 
 
-def test_codex_absent_notice(tmp_path):
-    home = setup(tmp_path)
-    out = run(home, "--codex")
-    assert "codex" in out.lower() and "not" in out.lower()
-    assert not (home / ".codex").exists()
-
-
 def test_report_cron_dry_run(tmp_path):
     home = setup(tmp_path)
     before = snapshot(home)
@@ -204,3 +197,36 @@ def test_report_cron_seeds_pricing_once(tmp_path):
     priced.write_text('{"default": {"input": 99}}')
     run(home, "--report-cron")
     assert priced.read_text() == '{"default": {"input": 99}}'
+
+
+def test_codex_merge_idempotent_and_uninstall(tmp_path):
+    home = setup(tmp_path)
+    codex = home / ".codex"
+    codex.mkdir()
+    foreign = {"matcher": "Bash", "hooks": [{"type": "command", "command": "echo mine"}]}
+    (codex / "hooks.json").write_text(json.dumps({"hooks": {"PreToolUse": [foreign]}, "keep": 1}))
+    out = run(home, "--codex")
+    assert "memories = true" in out
+    d = json.loads((codex / "hooks.json").read_text())
+    assert d["keep"] == 1 and set(d["hooks"]) == {"PreToolUse", "SessionStart", "SessionEnd", "PreCompact"}
+    assert d["hooks"]["PreToolUse"][0] == foreign and len(d["hooks"]["PreToolUse"]) == 2
+    text = json.dumps(d)
+    assert "$HH_ROOT" not in text and '"feature"' not in text and f"{ROOT}/shared/py/bin/codex_pretooluse.py" in text
+    assert (home / ".agents/skills/handoff-note/SKILL.md").exists()
+    assert not (codex / "config.toml").exists()
+
+    before = snapshot(home)
+    run(home, "--codex")
+    assert snapshot(home) == before
+
+    run(home, "--codex", "--uninstall")
+    d = json.loads((codex / "hooks.json").read_text())
+    assert d["hooks"] == {"PreToolUse": [foreign]} and d["keep"] == 1
+    assert not (home / ".agents/skills/handoff-note").exists()
+
+
+def test_codex_feature_gating_uses_saved_features(tmp_path):
+    home = setup(tmp_path)
+    run(home, "--features", "output-guard")
+    run(home, "--codex")  # no --features: reads <config dir>/features.json
+    assert set(json.loads((home / ".codex/hooks.json").read_text())["hooks"]) == {"PreToolUse"}

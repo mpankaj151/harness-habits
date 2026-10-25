@@ -81,3 +81,28 @@ def render(snapshot: Snapshot, cwd, session_id: str) -> str:
     out += ["", "## Files edited"]
     out += [f"- {p}" for p in snapshot.edited_files] or ["- (none)"]
     return "\n".join(out) + "\n"
+
+
+def extract_tolerant(path: Path) -> Snapshot:
+    """Claude-shape extraction first; if that finds no text, scan for any {role, content} message.
+
+    Codex rollout lines are not verified against a live binary, so messages are looked for at the top
+    level and under `payload` / `message`. Unknown lines are ignored.
+    """
+    snap = extract(path)
+    if snap.user_messages or snap.last_assistant_text:
+        return snap
+    for d in iter_entries(path):
+        for cand in (d, d.get("payload"), d.get("message")):
+            if not isinstance(cand, dict) or cand.get("role") not in ("user", "assistant"):
+                continue
+            text = "\n".join(b["text"] for b in _blocks(cand.get("content")) if isinstance(b.get("text"), str)).strip()
+            if not text:
+                continue
+            if cand["role"] == "assistant":
+                snap.last_assistant_text = text
+            elif not text.startswith("<"):  # skip injected <environment_context>-style blocks
+                snap.user_messages.append(text)
+                del snap.user_messages[:-MAX_USER]
+            break
+    return snap
