@@ -7,7 +7,7 @@ A compaction replaces the conversation with a summary, and details such as your 
 ## What you see
 
 - Claude Code: a file `<data dir>/precompact/<session_id>.md` (`CLAUDE_PLUGIN_DATA` if set) with the last 5 user messages, the last assistant message, the latest TodoWrite list and edited files. After a compaction Claude's context starts with `Snapshot taken before the last compaction of this session:` followed by that file.
-- With `HH_STARTUP_HANDOFF=1`, a new session in the same directory instead receives `Snapshot from the most recent earlier session in this directory:` (newest snapshot younger than 7 days).
+- With `HH_STARTUP_HANDOFF=1`, a new session in the same directory also receives `Snapshot from the most recent earlier session in this directory:` (newest snapshot younger than 7 days).
 - Codex: the note is written to `~/.codex/handoff/<session_id>.md` (override with `HH_CODEX_HANDOFF_DIR`).
 
 ## Setup
