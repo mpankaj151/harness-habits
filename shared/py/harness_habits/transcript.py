@@ -6,6 +6,11 @@ from pathlib import Path
 
 EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 MAX_USER = 5
+USER_CHARS = 1000
+ASSISTANT_CHARS = 2000
+TOTAL_BYTES = 6 * 1024
+# Entries that hold a previous compaction summary or UI-only text, never fresh conversation.
+SKIP_FLAGS = ("isSidechain", "isCompactSummary", "isVisibleInTranscriptOnly")
 
 
 @dataclass
@@ -42,7 +47,7 @@ def extract(path: Path) -> Snapshot:
     snap = Snapshot()
     seen = set()
     for d in iter_entries(path):
-        if d.get("isSidechain"):
+        if any(d.get(flag) for flag in SKIP_FLAGS):
             continue
         kind, msg = d.get("type"), d.get("message")
         if kind not in ("user", "assistant") or not isinstance(msg, dict):
@@ -51,12 +56,12 @@ def extract(path: Path) -> Snapshot:
         if kind == "user":
             text = "\n".join(b.get("text", "") for b in blocks if b.get("type") == "text" and isinstance(b.get("text"), str)).strip()
             if text and not d.get("isMeta"):
-                snap.user_messages.append(text)
+                snap.user_messages.append(text[:USER_CHARS])
                 del snap.user_messages[:-MAX_USER]
             continue
         texts = [b["text"] for b in blocks if b.get("type") == "text" and isinstance(b.get("text"), str) and b["text"].strip()]
         if texts:
-            snap.last_assistant_text = "\n".join(texts).strip()
+            snap.last_assistant_text = "\n".join(texts).strip()[:ASSISTANT_CHARS]
         for b in blocks:
             if b.get("type") != "tool_use" or not isinstance(b.get("input"), dict):
                 continue
@@ -80,7 +85,11 @@ def render(snapshot: Snapshot, cwd, session_id: str) -> str:
     out += [f"- [{t.get('status', '?')}] {t.get('content', '')}" for t in snapshot.todos] or ["- (none)"]
     out += ["", "## Files edited"]
     out += [f"- {p}" for p in snapshot.edited_files] or ["- (none)"]
-    return "\n".join(out) + "\n"
+    text = "\n".join(out) + "\n"
+    raw = text.encode("utf-8")
+    if len(raw) > TOTAL_BYTES:
+        text = raw[:TOTAL_BYTES].decode("utf-8", errors="ignore").rstrip() + "\n(truncated)\n"
+    return text
 
 
 def extract_tolerant(path: Path) -> Snapshot:
@@ -93,6 +102,8 @@ def extract_tolerant(path: Path) -> Snapshot:
     if snap.user_messages or snap.last_assistant_text:
         return snap
     for d in iter_entries(path):
+        if any(d.get(flag) for flag in SKIP_FLAGS):
+            continue
         for cand in (d, d.get("payload"), d.get("message")):
             if not isinstance(cand, dict) or cand.get("role") not in ("user", "assistant"):
                 continue
@@ -100,9 +111,9 @@ def extract_tolerant(path: Path) -> Snapshot:
             if not text:
                 continue
             if cand["role"] == "assistant":
-                snap.last_assistant_text = text
+                snap.last_assistant_text = text[:ASSISTANT_CHARS]
             elif not text.startswith("<"):  # skip injected <environment_context>-style blocks
-                snap.user_messages.append(text)
+                snap.user_messages.append(text[:USER_CHARS])
                 del snap.user_messages[:-MAX_USER]
             break
     return snap
