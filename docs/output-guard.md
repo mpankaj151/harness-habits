@@ -18,7 +18,7 @@ Switch it off with `HH_FEATURE_OUTPUT_GUARD=0`, or `"output-guard": false` in `~
 | `Read` tool without `limit` on a file over 500 lines | advise |
 | `sudo`, `command`, `nice`, `time` prefix | stripped before matching |
 
-Unbalanced quotes and any engine error allow the command. Line counts for files stop at 501, so messages show `501 lines` for any larger file.
+Unbalanced quotes and any engine error allow the command. Line counts for files stop at 501, so messages say `more than 500 lines` for any larger file. A newline in the command counts as a composed command.
 
 ## Just this one
 

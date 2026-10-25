@@ -94,7 +94,7 @@ def test_invalid_stdin(work, raw):
 
 @pytest.mark.parametrize("payload", [
     {"tool_name": "Bash", "tool_input": "oops", "cwd": "/tmp"},
-    {"tool_name": "Bash", "tool_input": {"command": "cat x"}, "cwd": 5},
+    {"tool_name": "Read", "tool_input": ["x"], "cwd": "/tmp"},
 ])
 def test_handler_exception_is_swallowed(work, payload):
     r = run(payload, work)
