@@ -2,7 +2,9 @@
 
 Install-once token, memory and cost hygiene for Claude Code, OpenCode and Codex CLI. It bounds runaway shell output, flags oversized instruction files, keeps handoff notes across compaction, and reports what a week of sessions cost. Every feature is a switch; pick one or all.
 
-**Status:** Claude Code and OpenCode tested locally (OpenCode smoke against a local Ollama model); Codex doc-verified, not yet run against a live binary.
+**Status:** Claude Code: PreToolUse guard exercised live via `tests/smoke/claude.sh` with `--plugin-dir`; other hooks unit-tested only. OpenCode: smoke against a local Ollama model. Codex: doc-verified, not yet run against a live binary. [Known issues (v0.1.0)](KNOWN-ISSUES.md).
+
+**Supported platforms:** macOS and Linux (Python 3.9+ for hooks, 3.11+ for the installer and report). The hooks were run on Python 3.9.6 during the final review; CI runs 3.11 and 3.12 on Linux and macOS.
 
 ## The problem
 
@@ -32,15 +34,15 @@ claude plugin install harness-habits@harness-habits
 ./install.sh --codex
 ```
 
-Optional: `./install.sh --statusline` (status line wrapper), `./install.sh --report-cron` (weekly cost report), `./install.sh --features output-guard,handoff` (only those features on). All flags and what they touch: [docs/install.md](docs/install.md). Requires Python 3.11+, stdlib only.
+Optional: `./install.sh --statusline` (status line wrapper), `./install.sh --report-cron` (weekly cost report), `./install.sh --features output-guard,handoff` (only those features on). All flags and what they touch: [docs/install.md](docs/install.md). Python 3.11+ for the installer, stdlib only.
 
 ## Features and pluggability
 
 | Feature key | Claude Code | OpenCode | Codex | Default |
 |---|---|---|---|---|
 | `output-guard` | yes | yes | yes | on |
-| `size-lint` | yes | | yes | on |
-| `cache-break` | yes | | | on |
+| `size-lint` | yes | yes | yes | on |
+| `cache-break` | yes | yes | | on |
 | `handoff` | | yes | skill | on |
 | `idle-compaction` | | yes | | off |
 | `cost-logger` | | yes | | on |
@@ -49,7 +51,7 @@ Optional: `./install.sh --statusline` (status line wrapper), `./install.sh --rep
 
 Three levels of choice:
 
-1. **Feature flags, one install.** Feature flags come from `~/.config/harness-habits/features.json`, overridable per harness by `HH_FEATURE_<KEY>` env vars, and on Claude Code also by `CLAUDE_PLUGIN_OPTION_<KEY>` env vars. Env wins over the file. `--features` writes the file.
+1. **Feature flags, one install.** Feature flags come from `~/.config/harness-habits/features.json`, overridable per harness by `HH_FEATURE_<KEY>` env vars, and on Claude Code also by `CLAUDE_PLUGIN_OPTION_<KEY>` env vars. Env wins over the file. `--features` adds the chosen keys to the file.
 2. **Per harness.** `--claude`, `--opencode`, `--codex`, `--statusline`, `--report-cron` are independent; none implies another.
 3. **Standalone, no plugin.** Each feature doc has a "Just this one" section: a hooks snippet pointing at the single script (Claude Code, Codex; `size-lint` and `precompact-snapshot` share the SessionStart script, and the docs show how to switch one off), or the per-feature OpenCode bundle `opencode/dist/features/<name>.js` (plugin id `harness-habits-<name>`).
 
@@ -59,7 +61,7 @@ Three levels of choice:
 
 ## Development
 
-`make test`, `make build` (rebuilds the committed `opencode/dist`), `make lint`, `make validate`, `make smoke-opencode` (needs `opencode` and a local model).
+`make test`, `make build` (rebuilds the committed `opencode/dist`), `make lint`, `make validate`, `make smoke-opencode` (needs `opencode` and a local model), `make smoke-claude` (needs `claude`; a few cents on `--model haiku`).
 
 Release steps for the maintainer, not done by the build: create the GitHub repo, push, tag `v0.1.0`, optionally `npm publish`.
 
