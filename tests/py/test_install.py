@@ -106,3 +106,91 @@ def test_report_cron_dry_run(tmp_path):
     out = run(home, "--report-cron", "--dry-run")
     assert "weekly_report.py" in out
     assert snapshot(home) == before
+
+
+def run_env(home, path, *args):
+    env = {"PATH": path, "HOME": str(home)}
+    p = subprocess.run([sys.executable, "-I", str(ROOT / "install.py"), *args],
+                       capture_output=True, text=True, env=env, timeout=60)
+    assert p.returncode == 0, p.stdout + p.stderr
+    return p.stdout
+
+
+def test_missing_claude_binary_does_not_abort(tmp_path):
+    home = setup(tmp_path)
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    # real home semantics are simulated by HOME only; claude is absent from PATH
+    out = run_env(home, str(empty), "--home", str(home), "--claude", "--statusline", "--opencode")
+    assert (home / ".config/opencode/plugins/harness-habits.js").exists()
+    assert "statusline_wrap.py" in (home / ".claude/settings.json").read_text()
+    assert "claude plugin install" in out
+
+
+def test_missing_binary_on_real_home_path(tmp_path):
+    # exercise the OSError branch directly
+    sys.path.insert(0, str(ROOT))
+    import importlib
+    inst = importlib.import_module("install")
+    ctx = inst.Ctx(tmp_path, False, False)
+    old = os.environ["PATH"]
+    os.environ["PATH"] = str(tmp_path)
+    try:
+        ctx.run(["claude", "plugin", "install", "x"])
+    finally:
+        os.environ["PATH"] = old
+
+
+def test_custom_home_does_not_run_claude(tmp_path):
+    home = setup(tmp_path)
+    fake = tmp_path / "bin"
+    fake.mkdir()
+    marker = tmp_path / "ran"
+    (fake / "claude").write_text(f"#!/bin/sh\ntouch {marker}\n")
+    (fake / "claude").chmod(0o755)
+    out = run_env(home, f"{fake}:{os.environ['PATH']}", "--home", str(home), "--claude")
+    assert not marker.exists()
+    assert "claude plugin install" in out
+
+
+def test_claude_dev_silent_on_uninstall(tmp_path):
+    home = setup(tmp_path)
+    assert "--plugin-dir" not in run(home, "--claude-dev", "--uninstall")
+
+
+def test_banner_copy_under_other_name_detected(tmp_path):
+    home = setup(tmp_path)
+    plug = home / ".config/opencode/plugins"
+    plug.mkdir(parents=True)
+    (plug / "copy.js").write_bytes((ROOT / "opencode/dist/harness-habits.js").read_bytes())
+    out = run(home, "--opencode")
+    assert "skip" in out.lower()
+    assert not (plug / "harness-habits.js").exists()
+
+
+def test_banner_file_at_target_is_overwritten(tmp_path):
+    home = setup(tmp_path)
+    plug = home / ".config/opencode/plugins"
+    plug.mkdir(parents=True)
+    (plug / "harness-habits.js").write_text("// harness-habits v0.0.1 old\n")
+    run(home, "--opencode")
+    assert (plug / "harness-habits.js").read_bytes() == (ROOT / "opencode/dist/harness-habits.js").read_bytes()
+
+
+def test_uninstall_leaves_foreign_target(tmp_path):
+    home = setup(tmp_path)
+    plug = home / ".config/opencode/plugins"
+    plug.mkdir(parents=True)
+    (plug / "harness-habits.js").write_text("export default { id: 'mine' }")
+    out = run(home, "--opencode", "--uninstall")
+    assert (plug / "harness-habits.js").exists()
+    assert "leaving" in out
+
+
+def test_install_sh_relative_home(tmp_path):
+    (tmp_path / "h").mkdir()
+    env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
+    p = subprocess.run([str(ROOT / "install.sh"), "--home", "./h", "--features", "handoff"],
+                       cwd=tmp_path, capture_output=True, text=True, env=env, timeout=60)
+    assert p.returncode == 0, p.stderr
+    assert (tmp_path / "h/.config/harness-habits/features.json").exists()

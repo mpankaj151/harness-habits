@@ -56,10 +56,18 @@ class Ctx:
             if not self.dry:
                 shutil.rmtree(path) if path.is_dir() else path.unlink()
 
-    def run(self, cmd: list[str]) -> None:
-        self.say("run: " + " ".join(cmd))
-        if not self.dry:
+    def run(self, cmd: list[str], external: bool = True) -> None:
+        text = " ".join(cmd)
+        self.say("run: " + text)
+        if self.dry:
+            return
+        if external and not self.real_home:
+            print(f"note: custom --home given, not running; run manually: {text}")
+            return
+        try:
             subprocess.run(cmd, check=False)
+        except OSError:
+            print(f"{cmd[0]} CLI not found; run these commands manually: {text}")
 
 
 def install_runtime(ctx: Ctx, only: str | None = None) -> Path:
@@ -81,7 +89,7 @@ def uninstall_runtime(ctx: Ctx) -> None:
 
 # --- claude -----------------------------------------------------------------------------
 
-def do_claude(ctx: Ctx, dev: bool, uninstall: bool) -> None:
+def do_claude(ctx: Ctx, uninstall: bool) -> None:
     if uninstall:
         ctx.run(["claude", "plugin", "uninstall", PLUGIN])
         return
@@ -145,6 +153,13 @@ def do_features(ctx: Ctx, feats: dict) -> None:
 
 # --- opencode ---------------------------------------------------------------------------
 
+BANNER = "// harness-habits"
+
+
+def is_ours(text: str) -> bool:
+    return text.startswith(BANNER)
+
+
 ID_RE = re.compile(r"""\bid\s*:\s*["']harness-habits["']""")
 
 
@@ -152,19 +167,27 @@ def do_opencode(ctx: Ctx, feats: dict | None, uninstall: bool) -> None:
     plugins = ctx.home / ".config" / "opencode" / "plugins"
     target = plugins / "harness-habits.js"
     if uninstall:
-        ctx.remove(target)
+        if target.exists():
+            same = OPENCODE_DIST.exists() and target.read_bytes() == OPENCODE_DIST.read_bytes()
+            if same or is_ours(target.read_text(errors="replace")):
+                ctx.remove(target)
+            else:
+                ctx.say(f"notice: {target} is not a harness-habits build; leaving it")
         return
     if not OPENCODE_DIST.exists():
         ctx.say(f"skip opencode: {OPENCODE_DIST} not built (cd opencode && npm run build)")
         return
     dist = OPENCODE_DIST.read_bytes()
     for other in sorted(plugins.glob("*.js")) if plugins.exists() else []:
-        if other != target and ID_RE.search(other.read_text(errors="replace")):
+        if other == target:
+            continue
+        other_text = other.read_text(errors="replace")
+        if ID_RE.search(other_text) or is_ours(other_text):
             ctx.say(f"warning: {other} already declares id \"harness-habits\"; skip opencode install")
             return
     if target.exists() and target.read_bytes() != dist:
         text = target.read_text(errors="replace")
-        if not text.startswith("// harness-habits"):
+        if not is_ours(text):
             ctx.say(f"warning: {target} is a different file; skip opencode install")
             return
     ctx.copy_file(OPENCODE_DIST, target)
@@ -268,7 +291,7 @@ def do_report_cron(ctx: Ctx, uninstall: bool) -> None:
             plist.parent.mkdir(parents=True, exist_ok=True)
             plist.write_text(plist_text(script))
         if ctx.real_home:
-            ctx.run(["launchctl", "load", str(plist)])
+            ctx.run(["launchctl", "load", str(plist)], external=False)
         else:
             ctx.say("skip launchctl load (custom --home)")
     else:
@@ -290,13 +313,13 @@ def main(argv=None) -> None:
     if not any(sel.values()) and not a.claude_dev and feats is None:
         ap.print_help()
         return
-    if a.claude_dev:
+    if a.claude_dev and not a.uninstall:
         do_claude_dev(ctx)
     if feats is not None and not a.uninstall:
         do_features(ctx, feats)
     effective = feats or dict(DEFAULTS)
     if sel["claude"]:
-        do_claude(ctx, a.claude_dev, a.uninstall)
+        do_claude(ctx, a.uninstall)
     if sel["statusline"]:
         do_statusline(ctx, a.uninstall)
     if sel["opencode"]:
